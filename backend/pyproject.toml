@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "discussion-room-booking-backend"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+	"cryptography>=42",
+	"fastapi>=0.115",
+	"google-api-python-client>=2",
+	"google-auth>=2",
+	"google-auth-oauthlib>=1",
+	"httplib2>=0.22",
+	"oauthlib>=3.2",
+	"PyJWT>=2",
+	"pydantic-settings>=2",
+	"postgrest>=0.19",
+	"python-dotenv>=1",
+	"requests>=2.31",
+	"supabase>=2",
+	"tzdata>=2024.1",
+	"uvicorn[standard]>=0.30",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]

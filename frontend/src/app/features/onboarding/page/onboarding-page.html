@@ -1,0 +1,37 @@
+<main class="panel">
+	<h1>Complete your profile</h1>
+	<form (ngSubmit)="submit()">
+		<label for="nim">NIM</label>
+		<input
+			id="nim"
+			name="nim"
+			type="number"
+			min="1"
+			step="1"
+			required
+			[ngModel]="nim()"
+			(ngModelChange)="nim.set($event)"
+		/>
+
+		<label for="major">Jurusan</label>
+		<select
+			id="major"
+			name="major"
+			required
+			[ngModel]="major()"
+			(ngModelChange)="major.set($event)"
+		>
+			<option value="" disabled>Select your major</option>
+			@for (item of majors; track item) {
+				<option [value]="item">{{ item }}</option>
+			}
+		</select>
+
+		@if (errorMessage()) {
+			<p role="alert">{{ errorMessage() }}</p>
+		}
+		<button type="submit" [disabled]="submitting()">
+			{{ submitting() ? 'Saving…' : 'Continue' }}
+		</button>
+	</form>
+</main>

@@ -1,0 +1,17 @@
+.panel {
+	margin: 3rem auto;
+	max-width: 28rem;
+	padding: 2rem;
+}
+
+form {
+	display: grid;
+	gap: 0.75rem;
+}
+
+input,
+select,
+button {
+	font: inherit;
+	padding: 0.7rem;
+}

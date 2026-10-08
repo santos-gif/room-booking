@@ -33,3 +33,8 @@ frontend/.vscode/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Extra
+.editorconfig
+
+client_secret.json

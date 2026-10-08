@@ -1,0 +1,31 @@
+{
+  "services": {
+    "my_frontend": {
+      "root": "frontend/"
+    },
+    "my_backend": {
+      "root": "backend/",
+      "entrypoint": "app/main.py"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "my_backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "my_frontend"
+      }
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/v1/appointments/reconcile",
+      "schedule": "10 0 * * *"
+    }
+  ]
+}
