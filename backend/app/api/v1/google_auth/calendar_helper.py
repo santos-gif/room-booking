@@ -64,10 +64,13 @@ def _calendar_credentials(
 	response: Response,
 ) -> Credentials:
 	result = (
-		supabase.table("google_refresh_tokens")
-		.select("refresh_token,is_valid")
-		.eq("id", user_id)
-		.limit(1)
+		supabase.rpc(
+			"get_google_refresh_token",
+			{
+				"requested_profile_id": user_id,
+				"backend_secret": settings.SUPABASE_BACKEND_RPC_SECRET,
+			},
+		)
 		.execute()
 	)
 	records = TypeAdapter(list[GoogleRefreshTokenRecord]).validate_python(result.data)
@@ -93,9 +96,13 @@ def _calendar_credentials(
 		try:
 			credentials.refresh(GoogleAuthRequest())
 		except RefreshError as error:
-			supabase.table("google_refresh_tokens").update(
-				{"is_valid": False}
-			).eq("id", user_id).execute()
+			supabase.rpc(
+				"invalidate_google_refresh_token",
+				{
+					"requested_profile_id": user_id,
+					"backend_secret": settings.SUPABASE_BACKEND_RPC_SECRET,
+				},
+			).execute()
 			raise GoogleAuthorizationException(
 				"Google authorization expired or was revoked. Connect Google Calendar again."
 			) from error

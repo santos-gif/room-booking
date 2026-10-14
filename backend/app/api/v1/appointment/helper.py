@@ -104,6 +104,22 @@ def _calendar_event(
 	}
 
 
+def _update_own_appointment_state(
+	supabase: Client,
+	appointment_id: str,
+	status: str,
+	sync_status: str,
+) -> object:
+	return supabase.rpc(
+		"update_own_appointment_state",
+		{
+			"target_appointment_id": appointment_id,
+			"new_status": status,
+			"new_sync_status": sync_status,
+		},
+	).execute().data
+
+
 def list_appointments(
 	supabase: Client,
 	current_user: AuthenticatedUser,
@@ -129,31 +145,32 @@ def get_availability(
 ) -> AvailabilityResponse:
 	if room_number not in (1, 2):
 		raise AppointmentValidationException("Choose Discussion Room 1 or 2.")
-	day_start = datetime.combine(booking_date, time.min, tzinfo=JAKARTA_TZ)
-	day_end = day_start + timedelta(days=1)
-	result = (
-		supabase.table("appointments")
-		.select("id,start_time,booker_id,room_number")
-		.in_("status", list(ACTIVE_STATUSES))
-		.gte("start_time", day_start.astimezone(timezone.utc).isoformat())
-		.lt("start_time", day_end.astimezone(timezone.utc).isoformat())
-		.execute()
-	)
-	booked_starts = {
-		datetime.fromisoformat(row["start_time"]).astimezone(JAKARTA_TZ)
-		for row in result.data
-		if isinstance(row, dict)
-		and row.get("room_number") == room_number
-		and isinstance(row.get("start_time"), str)
-		and row.get("id") != exclude_appointment_id
-	}
-	bookings_used = sum(
-		1 for row in result.data if isinstance(row, dict)
-		and row.get("booker_id") == current_user.id
-		and row.get("id") != exclude_appointment_id
-	)
 	if exclude_appointment_id:
 		_get_own_appointment(supabase, exclude_appointment_id, current_user)
+	result = (
+		supabase.rpc(
+			"get_booking_availability",
+			{
+				"booking_date": booking_date.isoformat(),
+				"requested_room": room_number,
+				"excluded_appointment_id": exclude_appointment_id,
+			},
+		)
+		.execute()
+	)
+	if not result.data or not isinstance(result.data[0], dict):
+		raise AppointmentStorageException()
+	availability = result.data[0]
+	raw_booked_starts = availability.get("booked_starts")
+	booked_starts = {
+		datetime.fromisoformat(value).astimezone(JAKARTA_TZ)
+		for value in raw_booked_starts
+		if isinstance(value, str)
+	} if isinstance(raw_booked_starts, list) else set()
+	bookings_used_value = availability.get("bookings_used")
+	if not isinstance(bookings_used_value, int):
+		raise AppointmentStorageException()
+	bookings_used = bookings_used_value
 	now = datetime.now(JAKARTA_TZ)
 	slots = [
 		AvailableSlot(
@@ -229,27 +246,24 @@ def create_appointment(
 			response,
 		)
 	except GoogleAuthorizationException:
-		supabase.table("appointments").update(
-			{"sync_status": "failed"}
-		).eq("id", appointment_id).execute()
+		_update_own_appointment_state(
+			supabase, appointment_id, "pending", "failed"
+		)
 		raise
 	except GoogleCalendarOperationException as error:
-		supabase.table("appointments").update(
-			{"sync_status": "failed"}
-		).eq("id", appointment_id).execute()
+		_update_own_appointment_state(
+			supabase, appointment_id, "pending", "failed"
+		)
 		logger.exception("Google Calendar event creation failed.")
 		raise CalendarSyncException() from error
 	try:
-		updated = (
-			supabase.table("appointments")
-			.update({"status": "confirmed", "sync_status": "synced"})
-			.eq("id", appointment_id)
-			.execute()
+		updated_data = _update_own_appointment_state(
+			supabase, appointment_id, "confirmed", "synced"
 		)
 	except APIError as error:
 		logger.exception("Calendar event exists but booking confirmation failed.")
 		raise CalendarSyncException() from error
-	rows = _responses(updated.data)
+	rows = _responses(updated_data)
 	if len(rows) != 1:
 		raise CalendarSyncException()
 	return rows[0]
@@ -362,17 +376,13 @@ def cancel_appointment(
 			logger.exception("Could not delete the room calendar event.")
 			raise CalendarSyncException() from error
 	try:
-		result = (
-			supabase.table("appointments")
-			.update({"status": "cancelled", "sync_status": "synced"})
-			.eq("id", appointment_id)
-			.eq("booker_id", current_user.id)
-			.execute()
+		updated_data = _update_own_appointment_state(
+			supabase, appointment_id, "cancelled", "synced"
 		)
 	except APIError as error:
 		logger.exception("Google event was deleted but booking cancellation failed.")
 		raise CalendarSyncException() from error
-	if not result.data:
+	if not updated_data:
 		raise AppointmentStorageException()
 
 
@@ -402,13 +412,34 @@ def _calendar_time_matches(
 	return actual is not None and target is not None and actual == target
 
 
+def _update_reconciliation_appointment(
+	supabase: Client,
+	appointment_id: str,
+	status: str,
+	sync_status: str,
+	calendar_id: str | None = None,
+	event_id: str | None = None,
+	update_google_ids: bool = False,
+) -> None:
+	supabase.rpc(
+		"update_reconciliation_appointment",
+		{
+			"backend_secret": settings.SUPABASE_BACKEND_RPC_SECRET,
+			"appointment_id": appointment_id,
+			"new_status": status,
+			"new_sync_status": sync_status,
+			"new_calendar_id": calendar_id,
+			"new_event_id": event_id,
+			"update_google_ids": update_google_ids,
+		},
+	).execute()
+
+
 def reconcile_appointments(supabase: Client) -> ReconciliationResponse:
-	result = (
-		supabase.table("appointments")
-		.select("*")
-		.in_("status", list(ACTIVE_STATUSES))
-		.execute()
-	)
+	result = supabase.rpc(
+		"list_reconciliation_appointments",
+		{"backend_secret": settings.SUPABASE_BACKEND_RPC_SECRET},
+	).execute()
 	rows = result.data
 	checked = 0
 	synchronized = 0
@@ -435,13 +466,15 @@ def reconcile_appointments(supabase: Client) -> ReconciliationResponse:
 					NAMESPACE_URL,
 					f"discussion-room-booking:{appointment_id}",
 				).hex
-				supabase.table("appointments").update(
-					{
-						"google_calendar_id": calendar_id,
-						"google_event_id": event_id,
-						"sync_status": "pending",
-					}
-				).eq("id", appointment_id).execute()
+				_update_reconciliation_appointment(
+					supabase,
+					appointment_id,
+					str(row["status"]),
+					"pending",
+					calendar_id,
+					event_id,
+					update_google_ids=True,
+				)
 			except APIError:
 				logger.exception(
 					"Could not prepare legacy appointment %s for reconciliation.",
@@ -494,9 +527,9 @@ def reconcile_appointments(supabase: Client) -> ReconciliationResponse:
 						Response(),
 					)
 				else:
-					supabase.table("appointments").update(
-						{"status": "cancelled", "sync_status": "synced"}
-					).eq("id", appointment_id).execute()
+					_update_reconciliation_appointment(
+						supabase, appointment_id, "cancelled", "synced"
+					)
 					released += 1
 					continue
 			if event is None:
@@ -519,9 +552,9 @@ def reconcile_appointments(supabase: Client) -> ReconciliationResponse:
 					None,
 					Response(),
 				)
-			supabase.table("appointments").update(
-				{"status": "confirmed", "sync_status": "synced"}
-			).eq("id", appointment_id).execute()
+			_update_reconciliation_appointment(
+				supabase, appointment_id, "confirmed", "synced"
+			)
 			row["status"] = "confirmed"
 			row["sync_status"] = "synced"
 			synchronized += 1
@@ -541,18 +574,20 @@ def reconcile_appointments(supabase: Client) -> ReconciliationResponse:
 		if not isinstance(old_id, str) or not isinstance(user_id, str):
 			continue
 		try:
-			old_result = (
-				supabase.table("appointments")
-				.select("*")
-				.eq("id", old_id)
-				.eq("booker_id", user_id)
-				.in_("status", list(ACTIVE_STATUSES))
-				.limit(1)
-				.execute()
+			old_result = next(
+				(
+					row
+					for row in rows
+					if isinstance(row, dict)
+					and row.get("id") == old_id
+					and row.get("booker_id") == user_id
+					and row.get("status") in ACTIVE_STATUSES
+				),
+				None,
 			)
-			if not old_result.data or not isinstance(old_result.data[0], dict):
+			if old_result is None:
 				continue
-			old = old_result.data[0]
+			old = old_result
 			if isinstance(old.get("google_calendar_id"), str) and isinstance(
 				old.get("google_event_id"), str
 			):
@@ -565,9 +600,11 @@ def reconcile_appointments(supabase: Client) -> ReconciliationResponse:
 					None,
 					Response(),
 				)
-			supabase.table("appointments").update(
-				{"status": "cancelled", "sync_status": "synced"}
-			).eq("id", old_id).eq("booker_id", user_id).execute()
+			_update_reconciliation_appointment(
+				supabase, old_id, "cancelled", "synced"
+			)
+			old["status"] = "cancelled"
+			old["sync_status"] = "synced"
 			released += 1
 		except (GoogleAuthorizationException, GoogleCalendarOperationException, APIError):
 			logger.exception("Rescheduled appointment %s could not be finalized.", old_id)

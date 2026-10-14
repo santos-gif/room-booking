@@ -4,8 +4,10 @@ from pydantic import BaseModel, ConfigDict
 
 
 class GoogleIdentity(BaseModel):
+	sub: str
 	email: str | None = None
 	email_verified: bool = False
+	name: str | None = None
 
 
 class GoogleCalendarEvent(BaseModel):

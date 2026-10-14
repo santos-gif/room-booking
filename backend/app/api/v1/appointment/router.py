@@ -26,7 +26,7 @@ from app.api.v1.google_auth.calendar_helper import (
 	GOOGLE_ACCESS_COOKIE,
 	GOOGLE_ACCESS_EXPIRY_COOKIE,
 )
-from app.database import SupabaseClient
+from app.database import PublicSupabaseClient, SupabaseClient
 from app.config import settings
 
 router = APIRouter(prefix="/appointments")
@@ -60,7 +60,7 @@ async def get_available_slots(
 
 @router.get("/reconcile", response_model=ReconciliationResponse)
 async def reconcile_calendar(
-	supabase: SupabaseClient,
+	supabase: PublicSupabaseClient,
 	authorization: str | None = Header(default=None),
 ) -> ReconciliationResponse:
 	if not settings.CRON_SECRET:

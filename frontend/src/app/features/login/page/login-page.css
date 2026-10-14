@@ -1,7 +1,21 @@
 div {
-	padding: 2rem;
+  padding: 2rem;
 }
 
 p {
-	margin-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.signin-container {
+  display: flex;
+  flex-direction: column;
+  /* Stack the error message and button vertically */
+  justify-content: center;
+  /* Center them vertically in the 100vh space */
+  align-items: center;
+  /* Center them horizontally */
+  gap: 16px;
+  /* Adds clean spacing between error text and button */
+  height: 100vh;
+  /* Fills the screen height */
 }

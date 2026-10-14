@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthenticatedUser, Major } from '../../../core/types/auth';
 
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class OnboardingService {
 	private readonly http = inject(HttpClient);
 

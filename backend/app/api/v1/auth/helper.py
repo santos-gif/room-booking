@@ -1,62 +1,28 @@
-from datetime import datetime, timedelta, timezone
 from typing import Any
 
-import jwt
 from fastapi import Cookie
 from fastapi.responses import Response
 from pydantic import TypeAdapter
+from supabase import Client
+from supabase_auth.errors import AuthError
 
-from app.api.v1.auth.exceptions import (
-	CredentialsException,
-	ExpiredAccessToken,
-	ExpiredRefreshToken,
-	UserNotFoundException,
-)
+from app.api.v1.auth.exceptions import CredentialsException, UserNotFoundException
 from app.api.v1.auth.types import AuthenticatedUser, OnboardingPayload
-from app.models.user import UserRecord
 from app.config import settings
 from app.database import SupabaseClient
+from app.models.user import UserRecord
 
 USER_RECORDS = TypeAdapter(list[UserRecord])
+REFRESH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60
 
 
-def _email_pattern(email: str) -> str:
-	return email.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-
-
-def verify_token(token: str) -> dict[str, Any]:
-	return jwt.decode(
-		token,
-		settings.SECRET_ACCESS_TOKEN_JWT_KEY,
-		algorithms=[settings.ALGORITHM],
-	)
-
-
-def create_tokens(user_email: str) -> tuple[str, str]:
-	now_utc = datetime.now(timezone.utc)
-	access_token_payload = {
-		"sub": user_email,
-		"exp": now_utc + timedelta(hours=1),
-	}
-	access_token = jwt.encode(
-		access_token_payload,
-		settings.SECRET_ACCESS_TOKEN_JWT_KEY,
-		algorithm=settings.ALGORITHM,
-	)
-	refresh_token_payload = {
-		"sub": user_email,
-		"exp": now_utc + timedelta(days=30),
-	}
-	refresh_token = jwt.encode(
-		refresh_token_payload,
-		settings.SECRET_REFRESH_TOKEN_JWT_KEY,
-		algorithm=settings.ALGORITHM,
-	)
-	return access_token, refresh_token
-
-
-def set_token_cookies(response: Response, access_token: str, refresh_token: str) -> None:
-	cookie_options: dict[str, object] = {
+def set_token_cookies(
+	response: Response,
+	access_token: str,
+	refresh_token: str,
+	access_max_age: int = 3600,
+) -> None:
+	cookie_options: dict[str, Any] = {
 		"httponly": True,
 		"secure": settings.COOKIE_SECURE,
 		"samesite": settings.COOKIE_SAMESITE,
@@ -65,89 +31,61 @@ def set_token_cookies(response: Response, access_token: str, refresh_token: str)
 	response.set_cookie(
 		key="access_token",
 		value=access_token,
-		max_age=3600,
+		max_age=max(0, access_max_age),
 		**cookie_options,
 	)
 	response.set_cookie(
 		key="refresh_token",
 		value=refresh_token,
-		max_age=30 * 24 * 60 * 60,
+		max_age=REFRESH_COOKIE_MAX_AGE,
 		**cookie_options,
 	)
 
 
 def renew_tokens(
 	refresh_token: str | None,
-	supabase: SupabaseClient,
-) -> tuple[str, str]:
+	supabase: Client,
+) -> tuple[str, str, int]:
 	if not refresh_token:
 		raise CredentialsException()
 	try:
-		payload = jwt.decode(
-			refresh_token,
-			settings.SECRET_REFRESH_TOKEN_JWT_KEY,
-			algorithms=[settings.ALGORITHM],
-		)
-	except jwt.ExpiredSignatureError as error:
-		raise ExpiredRefreshToken() from error
-	except jwt.PyJWTError as error:
+		auth_response = supabase.auth.refresh_session(refresh_token=refresh_token)
+	except AuthError as error:
 		raise CredentialsException() from error
-
-	email = payload.get("sub")
-	if not isinstance(email, str) or not email:
+	if auth_response.session is None:
 		raise CredentialsException()
-	result = (
-		supabase.table("users")
-		.select("id,email")
-		.ilike("email", _email_pattern(email))
-		.limit(2)
-		.execute()
-	)
-	matches = [
-		user
-		for user in USER_RECORDS.validate_python(result.data)
-		if user.email.casefold() == email.casefold()
-	]
-	if len(matches) != 1:
-		raise UserNotFoundException()
-	return create_tokens(user_email=email)
+	session = auth_response.session
+	return session.access_token, session.refresh_token, session.expires_in
 
 
 def get_current_user(
 	supabase: SupabaseClient,
-	access_token: str | None = Cookie(None),
+	access_token: str | None = Cookie(None, alias="access_token"),
 ) -> AuthenticatedUser:
 	if not access_token:
 		raise CredentialsException()
 	try:
-		payload = jwt.decode(
-			access_token,
-			settings.SECRET_ACCESS_TOKEN_JWT_KEY,
-			algorithms=[settings.ALGORITHM],
-		)
-	except jwt.ExpiredSignatureError as error:
-		raise ExpiredAccessToken() from error
-	except jwt.PyJWTError as error:
+		auth_response = supabase.auth.get_user(access_token)
+	except AuthError as error:
 		raise CredentialsException() from error
-
-	email = payload.get("sub")
-	if not isinstance(email, str) or not email:
+	if auth_response is None or auth_response.user is None:
 		raise CredentialsException()
+
+	profile_result = supabase.rpc("current_profile_id").execute()
+	profile_id = profile_result.data
+	if not isinstance(profile_id, str) or not profile_id:
+		raise UserNotFoundException()
 	result = (
 		supabase.table("users")
 		.select("*")
-		.ilike("email", _email_pattern(email))
-		.limit(2)
+		.eq("id", profile_id)
+		.limit(1)
 		.execute()
 	)
-	matches = [
-		user
-		for user in USER_RECORDS.validate_python(result.data)
-		if user.email.casefold() == email.casefold()
-	]
-	if len(matches) != 1:
+	users = USER_RECORDS.validate_python(result.data)
+	if len(users) != 1:
 		raise UserNotFoundException()
-	user = matches[0]
+	user = users[0]
 	return AuthenticatedUser(
 		id=user.id,
 		email=user.email,

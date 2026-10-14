@@ -1,0 +1,25 @@
+.bookings {
+	margin: 2rem auto;
+	max-width: 55rem;
+	padding: 0 1rem;
+}
+
+header,
+.actions {
+	align-items: center;
+	display: flex;
+	gap: 0.75rem;
+	justify-content: space-between;
+}
+
+.booking-card {
+	border: 1px solid #d6dce5;
+	border-radius: 0.75rem;
+	margin: 1rem 0;
+	padding: 1.25rem;
+}
+
+.time {
+	font-size: 1.2rem;
+	font-weight: 700;
+}

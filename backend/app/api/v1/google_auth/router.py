@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Cookie, Depends, Request, Response
+from fastapi import APIRouter, Cookie, Depends, Query, Request, Response
 from fastapi.responses import RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
@@ -9,11 +9,11 @@ from app.api.v1.google_auth.calendar_helper import (
 	GOOGLE_ACCESS_EXPIRY_COOKIE,
 	get_calendar_events,
 )
-from app.api.v1.google_auth.oauth_flow import create_google_login_response
+from app.api.v1.google_auth.oauth_flow import OAUTH_VERIFIER_COOKIE, create_google_login_response
 from app.api.v1.google_auth.oauth_flow import OAUTH_STATE_COOKIE
 from app.api.v1.google_auth.oauth_helper import complete_google_oauth
 from app.api.v1.google_auth.types import GoogleCalendarEvent
-from app.database import SupabaseClient
+from app.database import PublicSupabaseClient, SupabaseClient
 
 router = APIRouter(prefix="/google-auth")
 
@@ -25,12 +25,21 @@ async def login() -> RedirectResponse:
 
 @router.get("/oauth2callback", response_class=RedirectResponse, response_model=None)
 async def oauth2callback(
-	request: Request,
-	supabase: SupabaseClient,
+	supabase: PublicSupabaseClient,
+	state: str | None = Query(None),
+	code: str | None = Query(None),
+	error:str | None = Query(None),
 	oauth_state: str | None = Cookie(default=None, alias=OAUTH_STATE_COOKIE),
+	oauth_verifier: str | None = Cookie(default=None, alias=OAUTH_VERIFIER_COOKIE)
 ) -> RedirectResponse:
 	return await run_in_threadpool(
-		complete_google_oauth, request, supabase, oauth_state
+		complete_google_oauth,
+		state=state,
+		code=code,
+		error=error, 
+		supabase=supabase,
+		oauth_state=oauth_state,
+		oauth_verifier=oauth_verifier
 	)
 
 

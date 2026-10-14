@@ -13,20 +13,20 @@ from app.api.v1.auth.types import (
 	UserResponse,
 )
 from app.api.v1.auth.helper import set_token_cookies
-from app.database import SupabaseClient
+from app.database import PublicSupabaseClient, SupabaseClient
 
 router = APIRouter(prefix="/auth")
 
 @router.post("/refresh", response_model=TokenRefreshResponse)
 async def refresh_token(
 	response: Response,
-	supabase: SupabaseClient,
+	supabase: PublicSupabaseClient,
 	refresh_token: str | None = Cookie(default=None),
 ) -> TokenRefreshResponse:
-	access_token, new_refresh_token = await run_in_threadpool(
+	access_token, new_refresh_token, expires_in = await run_in_threadpool(
 		renew_tokens, refresh_token, supabase
 	)
-	set_token_cookies(response, access_token, new_refresh_token)
+	set_token_cookies(response, access_token, new_refresh_token, expires_in)
 	return TokenRefreshResponse(
 		message="Access and refresh tokens renewed."
 	)

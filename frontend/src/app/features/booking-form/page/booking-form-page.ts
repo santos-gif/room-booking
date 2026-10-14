@@ -7,15 +7,16 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { catchError, EMPTY, switchMap, timer } from 'rxjs';
-import { AuthService } from '../../../../core/services/auth-service';
-import { BookingFormService } from '../../services/booking-form.service';
+import { AuthService } from '../../../core/services/auth-service';
+import { BookingFormService } from '../services/booking-form.service';
 import {
 	Availability,
 	AvailableSlot,
 	BookingPayload,
-} from '../../types/booking-form';
+} from '../types/booking-form';
 
 @Component({
+	providers: [BookingFormService],
 	imports: [DatePipe, FormsModule],
 	selector: 'app-booking-form-page',
 	templateUrl: './booking-form-page.html',
@@ -102,7 +103,7 @@ export class BookingFormPage {
 					error.status === 409
 						? 'That time slot is no longer available or your daily limit has been reached.'
 						: error.error?.detail ??
-							'Unable to complete the booking. Your existing booking was preserved.',
+						'Unable to complete the booking. Your existing booking was preserved.',
 				);
 			},
 		});

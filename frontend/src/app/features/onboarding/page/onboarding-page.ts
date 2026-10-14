@@ -5,6 +5,7 @@ import { MAJORS, Major } from '../../../core/types/auth';
 import { OnboardingService } from '../services/onboarding.service';
 
 @Component({
+	providers: [OnboardingService],
 	imports: [FormsModule],
 	selector: 'app-onboarding-page',
 	templateUrl: './onboarding-page.html',

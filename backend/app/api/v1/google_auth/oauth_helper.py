@@ -1,19 +1,21 @@
-import secrets
 import logging
+import secrets
 
-from google.auth.exceptions import GoogleAuthError
 from fastapi import Request
 from fastapi.responses import RedirectResponse
+from google.auth.exceptions import GoogleAuthError
 from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.oauth2 import id_token
 from google.oauth2.credentials import Credentials
 from oauthlib.oauth2.rfc6749.errors import OAuth2Error
-from pydantic import TypeAdapter
 from postgrest.exceptions import APIError
+from pydantic import TypeAdapter
 from requests.exceptions import RequestException
 from supabase import Client
+from supabase_auth.errors import AuthError
 
-from app.api.v1.auth.helper import create_tokens, set_token_cookies
+from app.api.v1.auth.helper import set_token_cookies
+from app.api.v1.google_auth.calendar_helper import set_google_access_cookie
 from app.api.v1.google_auth.exceptions import (
 	GoogleCredentialException,
 	GoogleIdentityException,
@@ -25,56 +27,18 @@ from app.api.v1.google_auth.helper import encrypt_refresh_token
 from app.api.v1.google_auth.oauth_flow import (
 	OAUTH_STATE_COOKIE,
 	OAUTH_STATE_COOKIE_PATH,
+	OAUTH_VERIFIER_COOKIE,
 	create_flow,
+	clear_oauth_cookies
 )
+
 from app.api.v1.google_auth.types import GoogleIdentity
-from app.api.v1.google_auth.calendar_helper import set_google_access_cookie
 from app.config import settings
+from app.database import create_supabase_client
 from app.models.google_refresh_token import GoogleRefreshTokenRecord
-from app.models.user import UserRecord
 
 logger = logging.getLogger(__name__)
-
-
-def _get_user_id(supabase: Client, email: str) -> str:
-	result = (
-		supabase.table("users")
-		.select("id,email")
-		.ilike(
-			"email",
-			email.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_"),
-		)
-		.limit(2)
-		.execute()
-	)
-	users = TypeAdapter(list[UserRecord]).validate_python(result.data)
-	matches = [user for user in users if user.email.casefold() == email.casefold()]
-	if len(matches) == 1:
-		return matches[0].id
-	if len(matches) > 1:
-		raise GoogleIdentityException(
-			"More than one application user matches this Google email address."
-		)
-
-	try:
-		result = (
-			supabase.table("users")
-			.insert(
-				{
-					"email": email,
-					"name": email.partition("@")[0],
-				}
-			)
-			.execute()
-		)
-	except APIError as error:
-		if error.code != "23505":
-			raise
-		return _get_user_id(supabase, email)
-	users = TypeAdapter(list[UserRecord]).validate_python(result.data)
-	if len(users) != 1:
-		raise GoogleIdentityException("Could not create the application user.")
-	return users[0].id
+TOKEN_RECORDS = TypeAdapter(list[GoogleRefreshTokenRecord])
 
 
 def _is_allowed_email(email: str) -> bool:
@@ -86,11 +50,11 @@ def _is_allowed_email(email: str) -> bool:
 	)
 
 
-def _needs_onboarding(supabase: Client, user_id: str) -> bool:
+def _needs_onboarding(supabase: Client, profile_id: str) -> bool:
 	result = (
 		supabase.table("users")
 		.select("nim,major")
-		.eq("id", user_id)
+		.eq("id", profile_id)
 		.limit(1)
 		.execute()
 	)
@@ -104,49 +68,56 @@ def _failure_redirect(error_code: str) -> RedirectResponse:
 		f"{settings.FRONTEND_URL.rstrip('/')}?auth_error={error_code}",
 		status_code=303,
 	)
-	redirect.delete_cookie(
-		key=OAUTH_STATE_COOKIE,
-		httponly=True,
-		secure=settings.COOKIE_SECURE,
-		samesite="lax",
-		path=OAUTH_STATE_COOKIE_PATH,
-	)
+	clear_oauth_cookies(redirect)
 	return redirect
 
 
-def _get_refresh_token(supabase: Client, user_id: str, credentials: Credentials) -> str:
+def _backend_rpc_secret() -> str:
+	if not settings.SUPABASE_BACKEND_RPC_SECRET:
+		raise GoogleCredentialException(
+			"Backend Supabase RPC authorization is not configured."
+		)
+	return settings.SUPABASE_BACKEND_RPC_SECRET
+
+
+def _get_refresh_token(
+	supabase: Client,
+	profile_id: str,
+	credentials: Credentials,
+) -> str:
 	if credentials.refresh_token:
 		return encrypt_refresh_token(credentials.refresh_token)
-	result = (
-		supabase.table("google_refresh_tokens")
-		.select("refresh_token,is_valid")
-		.eq("id", user_id)
-		.limit(1)
-		.execute()
-	)
-	rows = TypeAdapter(list[GoogleRefreshTokenRecord]).validate_python(result.data)
+	result = supabase.rpc(
+		"get_google_refresh_token",
+		{
+			"requested_profile_id": profile_id,
+			"backend_secret": _backend_rpc_secret(),
+		},
+	).execute()
+	rows = TOKEN_RECORDS.validate_python(result.data)
 	if not rows or not rows[0].is_valid:
 		raise GoogleRefreshConsentException()
 	return rows[0].refresh_token
 
 
 def complete_google_oauth(
-	request: Request,
+	state:str | None,
+	code:str | None,
+	error: str | None,
 	supabase: Client,
 	oauth_state: str | None,
+	oauth_verifier:str | None
 ) -> RedirectResponse:
-	query_state = request.query_params.get("state")
-	if not oauth_state or not query_state or not secrets.compare_digest(
-		oauth_state, query_state
-	):
+	if not oauth_state or not state or not secrets.compare_digest(oauth_state, state):
 		raise GoogleOAuthStateException()
-	if request.query_params.get("error"):
+	if error:
 		return _failure_redirect("google_access_denied")
 
-	code = request.query_params.get("code")
 	if not code:
 		raise GoogleOAuthRequestException("Google did not return an authorization code.")
-	flow = create_flow(oauth_state)
+	if not oauth_verifier:
+		raise GoogleOAuthStateException()
+	flow = create_flow(oauth_state, code_verifier=oauth_verifier)
 	try:
 		flow.fetch_token(code=code)
 	except (OAuth2Error, RequestException):
@@ -163,53 +134,87 @@ def complete_google_oauth(
 				settings.GOOGLE_CLIENT_ID,
 			)
 		)
-	except GoogleAuthError as error:
+	except GoogleAuthError as e:
 		raise GoogleCredentialException(
 			"Google identity verification is temporarily unavailable."
-		) from error
-	except ValueError as error:
-		raise GoogleIdentityException("Google returned an invalid identity token.") from error
-	if not identity.email or not identity.email_verified:
+		) from e
+	except ValueError as e:
+		raise GoogleIdentityException("Google returned an invalid identity token.") from e
+	if not identity.sub or not identity.email or not identity.email_verified:
 		return _failure_redirect("verified_email_required")
-	email = str(identity.email).strip().casefold()
+	email = identity.email.strip().casefold()
 	if not _is_allowed_email(email):
 		return _failure_redirect("university_email_required")
 	if not credentials.token:
 		raise GoogleCredentialException("Google did not return an access token.")
 
-	user_id = _get_user_id(supabase, email)
+	try:
+		auth_response = supabase.auth.sign_in_with_id_token(
+			{"provider": "google", "token": credentials.id_token}
+		)
+	except AuthError as e:
+		logger.exception(
+			"Supabase Auth failed during Google ID-token sign-in."
+		)
+		raise GoogleCredentialException("Supabase Auth could not establish a session.") from e
+
+	if auth_response.session is None or auth_response.user is None:
+		raise GoogleCredentialException("Supabase Auth did not return a valid session.")
+	auth_user = auth_response.user
+	if (
+		not auth_user.email
+		or auth_user.email.casefold() != email
+		or auth_user.email_confirmed_at is None
+	):
+		raise GoogleIdentityException(
+			"Supabase Auth identity did not match the verified Google account."
+		)
+
+	session = auth_response.session
+	user_supabase = create_supabase_client(session.access_token)
+	try:
+		profile_result = user_supabase.rpc(
+			"get_or_create_current_profile",
+			{"profile_name": identity.name or email.partition("@")[0]},
+		).execute()
+	except APIError as e:
+		if e.code == "P0001":
+			return _failure_redirect("account_link_required")
+		raise
+	profile_id = profile_result.data
+	if not isinstance(profile_id, str) or not profile_id:
+		raise GoogleIdentityException("Could not load the application user profile.")
+
 	try:
 		encrypted_refresh_token = _get_refresh_token(
-			supabase,
-			user_id,
+			user_supabase,
+			profile_id,
 			credentials,
 		)
 	except GoogleRefreshConsentException:
 		return _failure_redirect("calendar_consent_required")
-	supabase.table("google_refresh_tokens").upsert(
-		{
-			"id": user_id,
-			"refresh_token": encrypted_refresh_token,
-			"is_valid": True,
-		},
-		on_conflict="id",
+	user_supabase.rpc(
+		"store_google_refresh_token",
+		{"token_value": encrypted_refresh_token},
 	).execute()
 
-	app_access_token, app_refresh_token = create_tokens(user_email=email)
-	destination = "/onboarding" if _needs_onboarding(supabase, user_id) else "/booking-form"
+	destination = (
+		"/onboarding"
+		if _needs_onboarding(user_supabase, profile_id)
+		else "/booking-form"
+	)
 	redirect = RedirectResponse(
 		f"{settings.FRONTEND_URL.rstrip('/')}{destination}",
 		status_code=303,
 	)
-	set_token_cookies(redirect, app_access_token, app_refresh_token)
-	set_google_access_cookie(redirect, credentials.token, credentials.expiry)
-	redirect.delete_cookie(
-		key=OAUTH_STATE_COOKIE,
-		httponly=True,
-		secure=settings.COOKIE_SECURE,
-		samesite="lax",
-		path=OAUTH_STATE_COOKIE_PATH,
+	set_token_cookies(
+		redirect,
+		session.access_token,
+		session.refresh_token,
+		session.expires_in,
 	)
+	set_google_access_cookie(redirect, credentials.token, credentials.expiry)
+	clear_oauth_cookies(redirect)
 	redirect.set_cookie(
 		key="csrf_token",
 		value=secrets.token_urlsafe(32),

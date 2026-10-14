@@ -15,6 +15,7 @@ env.local
 .pytest_cache/
 .coverage
 htmlcov/
+build/
 
 # Frontend dependencies and generated output
 frontend/node_modules/
@@ -38,3 +39,5 @@ Thumbs.db
 .editorconfig
 
 client_secret.json
+.vercel
+add_vercel_env.ps1

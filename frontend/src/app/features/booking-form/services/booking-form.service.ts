@@ -8,7 +8,7 @@ import {
 	BookingPayload,
 } from '../types/booking-form';
 
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class BookingFormService {
 	private readonly http = inject(HttpClient);
 	private readonly baseUrl = `${environment.apiUrl}/appointments`;

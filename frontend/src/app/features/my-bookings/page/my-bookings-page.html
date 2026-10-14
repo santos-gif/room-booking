@@ -1,0 +1,48 @@
+<main class="bookings">
+	<header>
+		<h1>My Bookings</h1>
+		<button type="button" (click)="addAppointment()">+ Add Appointment</button>
+	</header>
+
+	@if (errorMessage()) {
+		<p role="alert">{{ errorMessage() }}</p>
+	}
+	@if (calendarReconnectNeeded()) {
+		<button type="button" (click)="reconnectCalendar()">
+			Reconnect Google Calendar
+		</button>
+	}
+
+	@if (appointments().length === 0 && !errorMessage()) {
+		<p>You do not have any upcoming appointments.</p>
+	}
+
+	@for (appointment of appointments(); track appointment.id) {
+		<article class="booking-card">
+			<p class="time">
+				{{ formatTime(appointment.start_time) }} WIB —
+				{{ formatTime(appointment.end_time) }} WIB
+			</p>
+			<p>Discussion Room {{ appointment.room_number }}</p>
+			<div class="actions">
+				<button
+					type="button"
+					[disabled]="busyId() === appointment.id"
+					(click)="cancel(appointment)"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					[disabled]="busyId() === appointment.id"
+					(click)="reschedule(appointment)"
+				>
+					Reschedule
+				</button>
+			</div>
+			@if (appointment.sync_status === 'failed') {
+				<p role="status">Calendar synchronization is pending.</p>
+			}
+		</article>
+	}
+</main>

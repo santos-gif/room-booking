@@ -6,7 +6,10 @@ from unittest.mock import Mock, patch, sentinel
 
 from fastapi import HTTPException, Response
 from google.auth.exceptions import RefreshError
+from google.oauth2.credentials import Credentials
+from postgrest.exceptions import APIError
 from pydantic import ValidationError
+from starlette.requests import Request
 
 from app.api.v1.appointment.router import reconcile_calendar
 from app.api.v1.appointment.exceptions import (
@@ -16,11 +19,13 @@ from app.api.v1.appointment.exceptions import (
 from app.api.v1.appointment.helper import (
 	_calendar_event,
 	_validate_slot,
+	cancel_appointment,
 	create_appointment,
+	get_availability,
 )
 from app.api.v1.appointment.types import AppointmentPayload, JAKARTA_TZ
 from app.api.v1.auth.exceptions import CredentialsException
-from app.api.v1.auth.helper import get_current_user
+from app.api.v1.auth.helper import get_current_user, renew_tokens
 from app.api.v1.auth.types import AuthenticatedUser, OnboardingPayload
 from app.api.v1.google_auth.calendar_helper import (
 	_calendar_credentials,
@@ -32,35 +37,36 @@ from app.api.v1.google_auth.exceptions import (
 	GoogleConfigurationException,
 )
 from app.api.v1.google_auth.oauth_flow import create_google_login_response
-from app.api.v1.google_auth.oauth_helper import _is_allowed_email
+from app.api.v1.google_auth.oauth_helper import (
+	_is_allowed_email,
+	complete_google_oauth,
+)
 from app.config import (
 	settings,
 	validate_integration_configuration,
 	validate_security_secrets,
 )
+from app.database import create_supabase_client
 
 
 class BookingContractTests(unittest.IsolatedAsyncioTestCase):
 	def test_security_secrets_require_minimum_length_and_separation(self) -> None:
 		with (
-			patch.object(settings, "SECRET_ACCESS_TOKEN_JWT_KEY", "a" * 32),
-			patch.object(settings, "SECRET_REFRESH_TOKEN_JWT_KEY", "b" * 32),
 			patch.object(settings, "CRON_SECRET", "c" * 32),
+			patch.object(settings, "SUPABASE_BACKEND_RPC_SECRET", "d" * 32),
 		):
 			validate_security_secrets()
 
 		with (
-			patch.object(settings, "SECRET_ACCESS_TOKEN_JWT_KEY", "short"),
-			patch.object(settings, "SECRET_REFRESH_TOKEN_JWT_KEY", "b" * 32),
-			patch.object(settings, "CRON_SECRET", "c" * 32),
-			self.assertRaisesRegex(RuntimeError, "SECRET_ACCESS_TOKEN_JWT_KEY"),
+			patch.object(settings, "CRON_SECRET", "short"),
+			patch.object(settings, "SUPABASE_BACKEND_RPC_SECRET", "d" * 32),
+			self.assertRaisesRegex(RuntimeError, "CRON_SECRET"),
 		):
 			validate_security_secrets()
 
 		with (
-			patch.object(settings, "SECRET_ACCESS_TOKEN_JWT_KEY", "a" * 32),
-			patch.object(settings, "SECRET_REFRESH_TOKEN_JWT_KEY", "a" * 32),
 			patch.object(settings, "CRON_SECRET", "c" * 32),
+			patch.object(settings, "SUPABASE_BACKEND_RPC_SECRET", "c" * 32),
 			self.assertRaisesRegex(RuntimeError, "must be different"),
 		):
 			validate_security_secrets()
@@ -171,6 +177,7 @@ class BookingContractTests(unittest.IsolatedAsyncioTestCase):
 			patch.object(settings, "GOOGLE_CALENDAR_ROOM_1_ID", "room-1"),
 			patch.object(settings, "GOOGLE_CALENDAR_ROOM_2_ID", "room-2"),
 			patch.object(settings, "GOOGLE_TOKEN_ENCRYPTION_KEY", "invalid"),
+			patch.object(settings, "SUPABASE_BACKEND_RPC_SECRET", "rpc-secret"),
 		):
 			with self.assertRaisesRegex(RuntimeError, "valid Fernet key"):
 				validate_integration_configuration()
@@ -225,12 +232,13 @@ class BookingContractTests(unittest.IsolatedAsyncioTestCase):
 
 	def test_revoked_google_refresh_token_is_invalidated(self) -> None:
 		supabase = Mock()
-		supabase.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = (
+		supabase.rpc.return_value.execute.return_value = (
 			SimpleNamespace(
 				data=[{"refresh_token": "encrypted-token", "is_valid": True}]
 			)
 		)
 		with (
+			patch.object(settings, "SUPABASE_BACKEND_RPC_SECRET", "backend-rpc-secret"),
 			patch(
 				"app.api.v1.google_auth.calendar_helper.decrypt_refresh_token",
 				return_value="refresh-token",
@@ -249,10 +257,47 @@ class BookingContractTests(unittest.IsolatedAsyncioTestCase):
 				Response(),
 			)
 
-		supabase.table.return_value.update.assert_called_once_with({"is_valid": False})
-		supabase.table.return_value.update.return_value.eq.assert_called_once_with(
-			"id",
-			"user-id",
+		supabase.rpc.assert_any_call(
+			"invalidate_google_refresh_token",
+			{
+				"requested_profile_id": "user-id",
+				"backend_secret": "backend-rpc-secret",
+			},
+		)
+
+	def test_cancellation_uses_the_restricted_state_transition_rpc(self) -> None:
+		appointment = {
+			"id": "appointment-id",
+			"booker_id": "user-id",
+			"status": "confirmed",
+		}
+		supabase = Mock()
+		(
+			supabase.table.return_value.select.return_value
+			.eq.return_value.eq.return_value.in_.return_value
+			.limit.return_value.execute.return_value
+		) = SimpleNamespace(data=[appointment])
+		supabase.rpc.return_value.execute.return_value = SimpleNamespace(
+			data=[{**appointment, "status": "cancelled", "sync_status": "synced"}]
+		)
+		user = AuthenticatedUser(id="user-id", email="student@student.pradita.ac.id")
+
+		cancel_appointment(
+			"appointment-id",
+			supabase,
+			user,
+			None,
+			None,
+			Response(),
+		)
+
+		supabase.rpc.assert_called_once_with(
+			"update_own_appointment_state",
+			{
+				"target_appointment_id": "appointment-id",
+				"new_status": "cancelled",
+				"new_sync_status": "synced",
+			},
 		)
 
 	def test_appointment_persists_and_syncs_calendar_event(self) -> None:
@@ -283,7 +328,7 @@ class BookingContractTests(unittest.IsolatedAsyncioTestCase):
 		table.insert.return_value.execute.return_value = SimpleNamespace(
 			data=[inserted_record]
 		)
-		table.update.return_value.eq.return_value.execute.return_value = SimpleNamespace(
+		supabase.rpc.return_value.execute.return_value = SimpleNamespace(
 			data=[confirmed_record]
 		)
 		user = AuthenticatedUser(id="user-id", email="student@student.pradita.ac.id")
@@ -314,6 +359,14 @@ class BookingContractTests(unittest.IsolatedAsyncioTestCase):
 
 		self.assertEqual(result.status, "confirmed")
 		self.assertEqual(result.sync_status, "synced")
+		supabase.rpc.assert_called_once_with(
+			"update_own_appointment_state",
+			{
+				"target_appointment_id": appointment_id,
+				"new_status": "confirmed",
+				"new_sync_status": "synced",
+			},
+		)
 		inserted_values = table.insert.call_args.args[0]
 		self.assertEqual(inserted_values["booker_id"], "user-id")
 		self.assertEqual(inserted_values["room_number"], 1)
@@ -352,9 +405,7 @@ class BookingContractTests(unittest.IsolatedAsyncioTestCase):
 		table.insert.return_value.execute.return_value = SimpleNamespace(
 			data=[pending_record]
 		)
-		table.update.return_value.eq.return_value.execute.return_value = SimpleNamespace(
-			data=[{**pending_record, "sync_status": "failed"}]
-		)
+		supabase.rpc.return_value.execute.return_value = SimpleNamespace(data=[])
 		user = AuthenticatedUser(id="user-id", email="student@student.pradita.ac.id")
 		with (
 			patch("app.api.v1.appointment.helper.uuid4", side_effect=[
@@ -384,11 +435,260 @@ class BookingContractTests(unittest.IsolatedAsyncioTestCase):
 				Response(),
 			)
 
-		table.update.assert_called_once_with({"sync_status": "failed"})
+		supabase.rpc.assert_called_once_with(
+			"update_own_appointment_state",
+			{
+				"target_appointment_id": "appointment-id",
+				"new_status": "pending",
+				"new_sync_status": "failed",
+			},
+		)
 
 	def test_booking_requires_an_authenticated_user(self) -> None:
 		with self.assertRaises(CredentialsException):
 			get_current_user(Mock(), None)
+
+	def test_authenticated_user_is_resolved_through_auth_profile_mapping(self) -> None:
+		supabase = Mock()
+		supabase.auth.get_user.return_value = SimpleNamespace(
+			user=SimpleNamespace(id="auth-user-id")
+		)
+		supabase.rpc.return_value.execute.return_value = SimpleNamespace(
+			data="legacy-profile-id"
+		)
+		supabase.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = (
+			SimpleNamespace(
+				data=[
+					{
+						"id": "legacy-profile-id",
+						"email": "student@student.pradita.ac.id",
+						"name": "Student",
+						"nim": 123456,
+						"major": "IT",
+					}
+				]
+			)
+		)
+
+		user = get_current_user(supabase, "supabase-access-token")
+
+		self.assertEqual(user.id, "legacy-profile-id")
+		supabase.auth.get_user.assert_called_once_with("supabase-access-token")
+		supabase.rpc.assert_called_once_with("current_profile_id")
+		supabase.table.assert_called_once_with("users")
+
+	def test_availability_uses_aggregate_rpc_without_returning_other_bookings(self) -> None:
+		booking_date = date(2030, 1, 1)
+		booked_start = datetime(2030, 1, 1, 9, tzinfo=JAKARTA_TZ)
+		supabase = Mock()
+		supabase.rpc.return_value.execute.return_value = SimpleNamespace(
+			data=[
+				{
+					"booked_starts": [booked_start.isoformat()],
+					"bookings_used": 1,
+				}
+			]
+		)
+		user = AuthenticatedUser(
+			id="profile-id",
+			email="student@student.pradita.ac.id",
+		)
+
+		availability = get_availability(supabase, booking_date, 1, user)
+
+		self.assertEqual(availability.bookings_used, 1)
+		self.assertEqual(availability.bookings_remaining, 1)
+		self.assertFalse(availability.slots[1].available)
+		supabase.rpc.assert_called_once_with(
+			"get_booking_availability",
+			{
+				"booking_date": "2030-01-01",
+				"requested_room": 1,
+				"excluded_appointment_id": None,
+			},
+		)
+		supabase.table.assert_not_called()
+
+	def test_supabase_client_uses_per_request_auth_headers(self) -> None:
+		with patch("app.database.create_client") as create_client:
+			create_supabase_client("first-user-token")
+			first_options = create_client.call_args.kwargs["options"]
+			create_supabase_client("second-user-token")
+			second_options = create_client.call_args.kwargs["options"]
+			create_supabase_client()
+			public_options = create_client.call_args.kwargs["options"]
+
+		self.assertEqual(
+			first_options.headers["Authorization"],
+			"Bearer first-user-token",
+		)
+		self.assertEqual(
+			second_options.headers["Authorization"],
+			"Bearer second-user-token",
+		)
+		self.assertNotIn("Authorization", public_options.headers)
+		self.assertFalse(first_options.auto_refresh_token)
+		self.assertFalse(first_options.persist_session)
+
+	def test_refresh_uses_and_rotates_supabase_auth_session(self) -> None:
+		supabase = Mock()
+		supabase.auth.refresh_session.return_value.session = SimpleNamespace(
+			access_token="new-access-token",
+			refresh_token="new-refresh-token",
+			expires_in=1800,
+		)
+
+		result = renew_tokens("old-refresh-token", supabase)
+
+		self.assertEqual(
+			result,
+			("new-access-token", "new-refresh-token", 1800),
+		)
+		supabase.auth.refresh_session.assert_called_once_with(
+			refresh_token="old-refresh-token"
+		)
+
+	def test_google_callback_exchanges_id_token_and_sets_supabase_cookies(self) -> None:
+		google_credentials = Credentials(
+			token="google-calendar-access-token",
+			refresh_token="google-calendar-refresh-token",
+			id_token="verified-google-id-token",
+		)
+		flow = Mock()
+		flow.credentials = google_credentials
+		public_supabase = Mock()
+		auth_session = SimpleNamespace(
+			access_token="supabase-access-token",
+			refresh_token="supabase-refresh-token",
+			expires_in=2400,
+		)
+		auth_user = SimpleNamespace(
+			email="student@student.pradita.ac.id",
+			email_confirmed_at="2026-01-01T00:00:00Z",
+		)
+		public_supabase.auth.sign_in_with_id_token.return_value = SimpleNamespace(
+			session=auth_session,
+			user=auth_user,
+		)
+		user_supabase = Mock()
+		profile_rpc = Mock()
+		profile_rpc.execute.return_value = SimpleNamespace(data="profile-id")
+		store_rpc = Mock()
+		store_rpc.execute.return_value = SimpleNamespace(data=None)
+		user_supabase.rpc.side_effect = [profile_rpc, store_rpc]
+		user_supabase.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = (
+			SimpleNamespace(data=[{"nim": 123456, "major": "IT"}])
+		)
+		request = Request(
+			{
+				"type": "http",
+				"method": "GET",
+				"path": "/api/v1/google-auth/oauth2callback",
+				"query_string": b"state=oauth-state&code=oauth-code",
+				"headers": [],
+			}
+		)
+
+		with (
+			patch("app.api.v1.google_auth.oauth_helper.create_flow", return_value=flow),
+			patch(
+				"app.api.v1.google_auth.oauth_helper.id_token.verify_oauth2_token",
+				return_value={
+					"sub": "google-subject",
+					"email": "student@student.pradita.ac.id",
+					"email_verified": True,
+					"name": "Student",
+				},
+			),
+			patch(
+				"app.api.v1.google_auth.oauth_helper.create_supabase_client",
+				return_value=user_supabase,
+			) as create_user_client,
+			patch(
+				"app.api.v1.google_auth.oauth_helper.encrypt_refresh_token",
+				return_value="encrypted-google-refresh-token",
+			),
+			patch.object(settings, "GOOGLE_CLIENT_ID", "google-client-id"),
+			patch.object(settings, "FRONTEND_URL", "https://frontend.example"),
+			patch.object(settings, "COOKIE_SECURE", True),
+		):
+			response = complete_google_oauth(request, public_supabase, "oauth-state")
+
+		public_supabase.auth.sign_in_with_id_token.assert_called_once_with(
+			{"provider": "google", "token": "verified-google-id-token"}
+		)
+		create_user_client.assert_called_once_with("supabase-access-token")
+		store_rpc.execute.assert_called_once()
+		cookies = response.headers.getlist("set-cookie")
+		self.assertEqual(response.status_code, 303)
+		self.assertIn("/booking-form", response.headers["location"])
+		self.assertTrue(any(cookie.startswith("access_token=") for cookie in cookies))
+		self.assertTrue(any(cookie.startswith("refresh_token=") for cookie in cookies))
+		self.assertTrue(
+			any(cookie.startswith("google_access_token=") for cookie in cookies)
+		)
+		self.assertTrue(any(cookie.startswith("csrf_token=") for cookie in cookies))
+
+	def test_google_callback_fails_closed_for_unmapped_existing_profile(self) -> None:
+		flow = Mock()
+		flow.credentials = Credentials(
+			token="google-calendar-access-token",
+			refresh_token="google-calendar-refresh-token",
+			id_token="verified-google-id-token",
+		)
+		supabase = Mock()
+		supabase.auth.sign_in_with_id_token.return_value = SimpleNamespace(
+			session=SimpleNamespace(
+				access_token="supabase-access-token",
+				refresh_token="supabase-refresh-token",
+				expires_in=2400,
+			),
+			user=SimpleNamespace(
+				email="student@student.pradita.ac.id",
+				email_confirmed_at="2026-01-01T00:00:00Z",
+			),
+		)
+		user_supabase = Mock()
+		user_supabase.rpc.return_value.execute.side_effect = APIError(
+			{
+				"code": "P0001",
+				"message": "An existing profile requires administrator identity linking",
+			}
+		)
+		request = Request(
+			{
+				"type": "http",
+				"method": "GET",
+				"path": "/api/v1/google-auth/oauth2callback",
+				"query_string": b"state=oauth-state&code=oauth-code",
+				"headers": [],
+			}
+		)
+
+		with (
+			patch("app.api.v1.google_auth.oauth_helper.create_flow", return_value=flow),
+			patch(
+				"app.api.v1.google_auth.oauth_helper.id_token.verify_oauth2_token",
+				return_value={
+					"sub": "google-subject",
+					"email": "student@student.pradita.ac.id",
+					"email_verified": True,
+				},
+			),
+			patch(
+				"app.api.v1.google_auth.oauth_helper.create_supabase_client",
+				return_value=user_supabase,
+			),
+			patch.object(settings, "GOOGLE_CLIENT_ID", "google-client-id"),
+			patch.object(settings, "FRONTEND_URL", "https://frontend.example"),
+		):
+			response = complete_google_oauth(request, supabase, "oauth-state")
+
+		self.assertIn("auth_error=account_link_required", response.headers["location"])
+		cookies = response.headers.getlist("set-cookie")
+		self.assertFalse(any(cookie.startswith("access_token=") for cookie in cookies))
+		self.assertFalse(any(cookie.startswith("refresh_token=") for cookie in cookies))
+		supabase.auth.sign_in_with_id_token.assert_called_once()
 
 
 if __name__ == "__main__":
