@@ -1,0 +1,13 @@
+<div class="modal-backdrop">
+	<section class="modal card" role="dialog" aria-modal="true" aria-label="Booking result">
+		<p>{{ message() }}</p>
+		<div class="actions">
+			@if (reconnectNeeded()) {
+				<button type="button" class="btn" (click)="reconnect.emit()">
+					Reconnect Google Calendar
+				</button>
+			}
+			<button type="button" class="btn btn-primary" (click)="closed.emit()">Continue</button>
+		</div>
+	</section>
+</div>

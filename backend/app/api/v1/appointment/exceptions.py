@@ -29,7 +29,7 @@ class DailyBookingLimitException(HTTPException):
 	def __init__(self) -> None:
 		super().__init__(
 			status_code=status.HTTP_409_CONFLICT,
-			detail="You can book at most two one-hour appointments per day.",
+			detail="You can have at most three upcoming appointments.",
 		)
 
 
@@ -46,4 +46,12 @@ class CalendarSyncException(HTTPException):
 		super().__init__(
 			status_code=status.HTTP_502_BAD_GATEWAY,
 			detail="The booking could not be synchronized with Google Calendar.",
+		)
+
+
+class ProfileIncompleteException(HTTPException):
+	def __init__(self) -> None:
+		super().__init__(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail="Complete your profile (NIM) before booking.",
 		)

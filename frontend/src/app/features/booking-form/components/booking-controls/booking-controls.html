@@ -1,0 +1,37 @@
+<section class="card controls" aria-label="Date and room">
+	<div class="field">
+		<label for="booking-date">Date</label>
+		<!-- The native input sits invisibly on top (real picker, phone friendly); the text under it is what is seen. -->
+		<div class="date-field">
+			<span class="input date-text">{{ date() | date: 'EEE, dd-MM-yyyy' }}</span>
+			<input
+				#picker
+				id="booking-date"
+				name="booking-date"
+				class="date-native"
+				type="date"
+				[value]="date()"
+				(click)="openPicker(picker)"
+				(change)="dateChange.emit(picker.value)"
+			/>
+		</div>
+	</div>
+
+	<fieldset class="field rooms">
+		<legend>Room</legend>
+		<div class="segmented">
+			@for (number of rooms; track number) {
+				<label>
+					<input
+						type="radio"
+						name="room"
+						[value]="number"
+						[checked]="room() === number"
+						(change)="roomChange.emit(number)"
+					/>
+					<span>Discussion Room {{ number }}</span>
+				</label>
+			}
+		</div>
+	</fieldset>
+</section>

@@ -1,37 +1,24 @@
-<main class="panel">
-	<h1>Complete your profile</h1>
-	<form (ngSubmit)="submit()">
-		<label for="nim">NIM</label>
-		<input
-			id="nim"
-			name="nim"
-			type="number"
-			min="1"
-			step="1"
-			required
-			[ngModel]="nim()"
-			(ngModelChange)="nim.set($event)"
+@if (editing) {
+	<app-header />
+}
+<main class="page page-narrow" [class.first-time]="!editing">
+	<section class="card" aria-labelledby="profile-title">
+		<h1 id="profile-title">{{ editing ? 'Your profile' : 'Complete your profile' }}</h1>
+		<p class="lead">
+			{{
+				editing
+					? 'Update your NIM or major when it changes.'
+					: 'We need your NIM and major before you can book a room.'
+			}}
+		</p>
+		<app-profile-form
+			[(nim)]="nim"
+			[(major)]="major"
+			[editing]="editing"
+			[canSubmit]="canSave()"
+			[submitting]="submitting()"
+			[errorMessage]="errorMessage()"
+			(submitted)="submit()"
 		/>
-
-		<label for="major">Jurusan</label>
-		<select
-			id="major"
-			name="major"
-			required
-			[ngModel]="major()"
-			(ngModelChange)="major.set($event)"
-		>
-			<option value="" disabled>Select your major</option>
-			@for (item of majors; track item) {
-				<option [value]="item">{{ item }}</option>
-			}
-		</select>
-
-		@if (errorMessage()) {
-			<p role="alert">{{ errorMessage() }}</p>
-		}
-		<button type="submit" [disabled]="submitting()">
-			{{ submitting() ? 'Saving…' : 'Continue' }}
-		</button>
-	</form>
+	</section>
 </main>

@@ -1,21 +1,20 @@
-div {
-  padding: 2rem;
+.login {
+	background: var(--bg);
+	display: grid;
+	min-height: 100vh;
+	padding: 1.5rem;
+	place-items: center;
 }
 
-p {
-  margin-bottom: 1rem;
+.card {
+	display: grid;
+	gap: 1rem;
+	max-width: 26rem;
+	padding: 2rem 1.75rem;
+	width: 100%;
 }
 
-.signin-container {
-  display: flex;
-  flex-direction: column;
-  /* Stack the error message and button vertically */
-  justify-content: center;
-  /* Center them vertically in the 100vh space */
-  align-items: center;
-  /* Center them horizontally */
-  gap: 16px;
-  /* Adds clean spacing between error text and button */
-  height: 100vh;
-  /* Fills the screen height */
+.hint {
+	color: var(--ink-soft);
+	font-size: 0.875rem;
 }

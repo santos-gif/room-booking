@@ -1,0 +1,67 @@
+/* Buttons: 44px minimum touch target. */
+.btn {
+	align-items: center;
+	background: var(--surface);
+	border: 1.5px solid var(--green-900);
+	border-radius: var(--radius-sm);
+	color: var(--green-900);
+	cursor: pointer;
+	display: inline-flex;
+	font: 600 0.95rem/1 var(--font);
+	gap: 0.5rem;
+	justify-content: center;
+	min-height: 2.75rem;
+	padding: 0 1.1rem;
+	text-decoration: none;
+	transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.btn:hover:not(:disabled) {
+	background: var(--green-50);
+}
+
+.btn-primary {
+	background: var(--green-900);
+	border-color: var(--green-900);
+	color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+	background: var(--green-800);
+}
+
+.btn-accent {
+	background: var(--orange-500);
+	border-color: var(--orange-500);
+	color: var(--ink);
+}
+
+.btn-accent:hover:not(:disabled) {
+	background: var(--orange-600);
+	border-color: var(--orange-600);
+}
+
+.btn-danger {
+	border-color: var(--danger);
+	color: var(--danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+	background: var(--danger-bg);
+}
+
+.btn-danger-solid {
+	background: var(--danger);
+	border-color: var(--danger);
+	color: #fff;
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+	background: #8f1d17;
+	border-color: #8f1d17;
+}
+
+.btn:disabled {
+	cursor: not-allowed;
+	opacity: 0.55;
+}

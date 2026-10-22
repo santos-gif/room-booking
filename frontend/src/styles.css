@@ -1,1 +1,7 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global styles, split by topic (order matters: tokens first, then base, then components). */
+@import './styles/tokens.css';
+@import './styles/base.css';
+@import './styles/buttons.css';
+@import './styles/forms-and-notices.css';
+@import './styles/dialog.css';
+@import './styles/loading.css';

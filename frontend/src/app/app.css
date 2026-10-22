@@ -1,0 +1,7 @@
+/* Covers the page while it loads, so a slow guard never shows a half-built or blank screen. */
+.route-loading {
+	background: rgb(228 232 229 / 92%);
+	inset: 0;
+	position: fixed;
+	z-index: 40;
+}

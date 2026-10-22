@@ -17,6 +17,13 @@ env.local
 htmlcov/
 build/
 
+# Playwright: saved login state holds session cookies, never commit it
+frontend/playwright/.auth/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/design-evidence/
+
 # Frontend dependencies and generated output
 frontend/node_modules/
 frontend/dist/
@@ -41,3 +48,15 @@ Thumbs.db
 client_secret.json
 .vercel
 add_vercel_env.ps1
+
+.claude/
+
+.ruff_cache/
+.vibe-wise/
+frontend/e2e/
+playwright.config.ts
+
+
+skills-lock.json
+.mcp.json
+ss/

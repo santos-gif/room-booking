@@ -5,14 +5,11 @@ from uuid import UUID
 from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Query, Response, status
 from starlette.concurrency import run_in_threadpool
 
-from app.api.v1.appointment.helper import (
-	cancel_appointment,
-	create_appointment,
-	get_availability,
-	list_appointments,
-	reconcile_appointments,
-	reschedule_appointment,
-)
+from app.api.v1.appointment.booking import create_appointment, list_appointments
+from app.api.v1.appointment.cancel import cancel_appointment
+from app.api.v1.appointment.reconcile import reconcile_appointments
+from app.api.v1.appointment.reschedule import reschedule_appointment
+from app.api.v1.appointment.slots import get_availability
 from app.api.v1.appointment.types import (
 	AppointmentPayload,
 	AppointmentResponse,
@@ -22,12 +19,9 @@ from app.api.v1.appointment.types import (
 )
 from app.api.v1.auth.helper import get_current_user
 from app.api.v1.auth.types import AuthenticatedUser
-from app.api.v1.google_auth.calendar_helper import (
-	GOOGLE_ACCESS_COOKIE,
-	GOOGLE_ACCESS_EXPIRY_COOKIE,
-)
-from app.database import PublicSupabaseClient, SupabaseClient
 from app.config import settings
+from app.cookies import GOOGLE_ACCESS_COOKIE, GOOGLE_ACCESS_EXPIRY_COOKIE
+from app.database import PublicSupabaseClient, SupabaseClient
 
 router = APIRouter(prefix="/appointments")
 

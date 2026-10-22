@@ -1,0 +1,12 @@
+<header class="bar">
+	<div class="bar-inner">
+		<a class="brand" routerLink="/my-bookings" aria-label="Room Booking, go to my bookings">
+			Room Booking
+		</a>
+		<nav aria-label="Main">
+			<a routerLink="/my-bookings" routerLinkActive="active">My bookings</a>
+			<a routerLink="/profile" routerLinkActive="active">Profile</a>
+		</nav>
+		<button type="button" class="signout" (click)="logout()">Sign out</button>
+	</div>
+</header>

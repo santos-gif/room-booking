@@ -1,6 +1,6 @@
 
 export const MAJORS = [
-	'IT',
+	'Information Technology',
 	'Management',
 	'Culinary Arts',
 	'Visual Communication Design',

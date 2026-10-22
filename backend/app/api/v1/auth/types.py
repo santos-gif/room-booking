@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 Major = Literal[
-	"IT",
+	"Information Technology",
 	"Management",
 	"Culinary Arts",
 	"Visual Communication Design",
@@ -34,7 +34,8 @@ class AuthenticatedUser(BaseModel):
 class OnboardingPayload(BaseModel):
 	model_config = ConfigDict(extra="forbid")
 
-	nim: StrictInt = Field(gt=0)
+	# Capped below 2^53: JavaScript loses integer precision above that. Fits Postgres bigint.
+	nim: StrictInt = Field(gt=0, le=9_999_999_999_999)
 	major: Major
 
 

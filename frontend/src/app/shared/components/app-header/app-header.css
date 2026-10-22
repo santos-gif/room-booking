@@ -1,0 +1,90 @@
+.bar {
+	background: var(--green-900);
+	border-bottom: 3px solid var(--orange-500);
+	box-shadow: 0 2px 8px rgb(0 0 0 / 18%);
+	position: sticky;
+	top: 0;
+	z-index: 10;
+}
+
+.bar-inner {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem 1.5rem;
+	margin: 0 auto;
+	max-width: 62rem;
+	padding: 0.6rem 1rem;
+}
+
+.brand {
+	color: #fff;
+	font-size: 1.1rem;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+	line-height: 2.75rem;
+	text-decoration: none;
+}
+
+nav {
+	display: flex;
+	flex: 1;
+	gap: 0.25rem;
+}
+
+nav a {
+	align-items: center;
+	border-radius: var(--radius-sm);
+	color: #fff;
+	display: inline-flex;
+	font-weight: 600;
+	min-height: 2.75rem;
+	padding: 0 0.95rem;
+	text-decoration: none;
+	transition: transform 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+
+/* Hover lifts the link and gives it an orange glow; the page you are on stays flat. */
+nav a:not(.active):hover {
+	background: rgb(255 255 255 / 10%);
+	box-shadow: 0 0 0 2px var(--orange-500), 0 4px 14px rgb(255 125 48 / 55%);
+	transform: translateY(-2px);
+}
+
+/* Same marker as the portal's selected menu row: lighter fill, orange bar on the left. */
+nav a.active {
+	background: rgb(255 255 255 / 18%);
+	box-shadow: inset 4px 0 0 var(--orange-500);
+}
+
+/* Light on the green bar, red text: clearly the "leave" button without a dark red block. */
+.signout {
+	background: #fff;
+	border: 2px solid #fff;
+	border-radius: var(--radius-sm);
+	color: var(--danger);
+	cursor: pointer;
+	font: 700 0.9rem/1 var(--font);
+	min-height: 2.75rem;
+	padding: 0 1.1rem;
+	transition: background-color 0.15s, border-color 0.15s;
+}
+
+.signout:hover {
+	background: var(--danger-bg);
+	border-color: var(--danger-bg);
+}
+
+@media (width <= 640px) {
+	.bar-inner {
+		gap: 0 0.75rem;
+		justify-content: space-between;
+	}
+
+	nav {
+		flex-basis: 100%;
+		order: 3;
+		overflow-x: auto;
+		padding: 0.25rem 0 0.4rem;
+	}
+}

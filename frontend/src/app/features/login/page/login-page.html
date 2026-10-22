@@ -1,6 +1,13 @@
-<div class="signin-container">
-	@if (errorMessage()) {
-		<p role="alert">{{ errorMessage() }}</p>
-	}
-	<app-signin-google-btn></app-signin-google-btn>
-</div>
+<main class="login">
+	<section class="card" aria-labelledby="login-title">
+		<h1 id="login-title">Book a discussion room</h1>
+		<p class="lead">
+			Reserve a one-hour slot in Room 1 or Room 2, weekdays 08:00 to 17:00 WIB.
+		</p>
+		@if (loginService.errorMessage()) {
+			<p class="alert" role="alert">{{ loginService.errorMessage() }}</p>
+		}
+		<app-signin-google-btn></app-signin-google-btn>
+		<p class="hint">Use your @student.pradita.ac.id or @pradita.ac.id account.</p>
+	</section>
+</main>

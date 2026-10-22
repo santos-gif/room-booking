@@ -16,16 +16,14 @@ export class LoginPage {
 	public readonly loginService = inject(LoginService);
 	private readonly router = inject(Router);
 
-
-	private readonly currentUser = toSignal<AuthenticatedUser | null>(
-		this.loginService.me(),
-		{ initialValue: null },
-	);
+	private readonly currentUser = toSignal<AuthenticatedUser | null>(this.loginService.me(), {
+		initialValue: null,
+	});
 	private readonly redirectEffect = effect(() => {
 		const user = this.currentUser();
 		if (user) {
 			void this.router.navigate([
-				user.onboarding_complete ? '/booking-form' : '/onboarding',
+				user.onboarding_complete ? '/my-bookings' : '/onboarding',
 			]);
 		}
 	});

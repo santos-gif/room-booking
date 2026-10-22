@@ -1,0 +1,30 @@
+/*
+ * Palette sampled from the Pradita academic portal (ss/): flat #f4f4f4 page, white surfaces,
+ * Pradita green for brand and primary actions, orange for the active/selected marker.
+ * Orange is never used as small text on white (use --orange-700 there).
+ */
+:root {
+	--green-900: #0f6434;
+	--green-800: #0b5028;
+	--green-700: #28a645;
+	--green-100: #e1f2e7;
+	--green-50: #f0f8f3;
+	--orange-700: #a84300;
+	--orange-600: #e8621a;
+	--orange-500: #ff7d30;
+	--orange-100: #ffe8da;
+	--orange-50: #fff4ec;
+	--ink: #212529;
+	--ink-soft: #5b6167;
+	--bg: #e4e8e5;
+	--hover: #eeeeee;
+	--surface: #ffffff;
+	--line: #bcc6bf;
+	--line-strong: #8a9096;
+	--danger: #b3261e;
+	--danger-bg: #fcebe9;
+	--radius: 8px;
+	--radius-sm: 6px;
+	--shadow: 0 1px 2px rgb(0 0 0 / 12%), 0 6px 18px rgb(0 0 0 / 10%);
+	--font: 'Inter', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', sans-serif;
+}

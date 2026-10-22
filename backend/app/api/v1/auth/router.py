@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Cookie, Depends, Response
 from starlette.concurrency import run_in_threadpool
 
@@ -12,9 +14,10 @@ from app.api.v1.auth.types import (
 	TokenRefreshResponse,
 	UserResponse,
 )
-from app.api.v1.auth.helper import set_token_cookies
-from app.database import PublicSupabaseClient, SupabaseClient
+from app.cookies import clear_auth_cookies, set_token_cookies
+from app.database import PublicSupabaseClient, SupabaseClient, create_supabase_client
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth")
 
 @router.post("/refresh", response_model=TokenRefreshResponse)
@@ -33,9 +36,7 @@ async def refresh_token(
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(
-	current_user: AuthenticatedUser = Depends(get_current_user),
-) -> UserResponse:
+async def get_me(current_user: AuthenticatedUser = Depends(get_current_user)) -> UserResponse:
 	return UserResponse(
 		**current_user.model_dump(),
 		onboarding_complete=(
@@ -54,3 +55,19 @@ async def complete_onboarding(
 		save_onboarding, supabase, current_user, payload
 	)
 	return UserResponse(**user.model_dump(), onboarding_complete=True)
+
+
+@router.post("/logout")
+async def logout(
+	response: Response,
+	access_token: str | None = Cookie(default=None),
+) -> dict[str, str]:
+	if access_token:
+		try:
+			user_client = create_supabase_client(access_token)
+			await run_in_threadpool(user_client.auth.sign_out)
+		except Exception:
+			logger.warning("Supabase sign-out failed during logout.", exc_info=True)
+	clear_auth_cookies(response)
+	return {"message": "Logged out successfully."}
+

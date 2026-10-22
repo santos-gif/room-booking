@@ -8,6 +8,7 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>
-  <app-root></app-root>
+  <!-- Shown until Angular boots and replaces it, so the first load is never a blank page. -->
+  <app-root><div class="loading-center" role="status" aria-label="Loading"><span class="spinner"></span></div></app-root>
 </body>
 </html>

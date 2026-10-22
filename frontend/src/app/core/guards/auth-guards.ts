@@ -8,14 +8,25 @@ export const authenticatedGuard: CanActivateFn = (_route, state) => {
 	const router = inject(Router);
 	return auth.me().pipe(
 		map((user) => {
-			if (!user.onboarding_complete && state.url !== '/onboarding') {
+			const path = state.url.split('?')[0];
+			if (!user.onboarding_complete && path !== '/onboarding') {
 				return router.parseUrl('/onboarding');
 			}
-			if (user.onboarding_complete && state.url === '/onboarding') {
-				return router.parseUrl('/booking-form');
+			if (user.onboarding_complete && path === '/onboarding') {
+				return router.parseUrl('/my-bookings');
 			}
 			return true;
 		}),
-		catchError(() => of(router.parseUrl('/'))),
+		// 401/404 mean "not signed in". Anything else (server down, offline) is not the student's fault:
+		// say so on the login page instead of pretending they are signed out.
+		catchError((error: { status?: number }) =>
+			of(
+				router.parseUrl(
+					error?.status === 401 || error?.status === 404
+						? '/'
+						: '/?auth_error=server_unavailable',
+				),
+			),
+		),
 	);
 };

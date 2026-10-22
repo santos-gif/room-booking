@@ -41,14 +41,6 @@ class GoogleIdentityException(HTTPException):
 		)
 
 
-class GoogleUserNotFoundException(HTTPException):
-	def __init__(self) -> None:
-		super().__init__(
-			status_code=status.HTTP_403_FORBIDDEN,
-			detail="No unique application user matches this Google email address.",
-		)
-
-
 class GoogleRefreshTokenException(HTTPException):
 	def __init__(self, detail: str) -> None:
 		super().__init__(

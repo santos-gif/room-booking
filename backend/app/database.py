@@ -1,6 +1,6 @@
-from typing import Annotated, Generator
+from typing import Annotated
 
-from fastapi import Cookie, Depends
+from fastapi import Cookie, Depends, HTTPException
 from supabase import Client, ClientOptions, create_client
 
 from app.config import settings
@@ -9,13 +9,12 @@ from app.config import settings
 def create_supabase_client(access_token: str | None = None) -> Client:
 	options = ClientOptions(
 		headers=(
-			{"Authorization": f"Bearer {access_token}"}
-			if access_token
-			else {}
-		),
+                        {"Authorization": f"Bearer {access_token}"} if access_token else {}
+                        ),
 		auto_refresh_token=False,
 		persist_session=False,
 	)
+
 	return create_client(
 		settings.SUPABASE_URL,
 		settings.SUPABASE_KEY,
@@ -23,14 +22,18 @@ def create_supabase_client(access_token: str | None = None) -> Client:
 	)
 
 
-def get_db(
-	access_token: str | None = Cookie(default=None, alias="access_token"),
-) -> Generator[Client, None, None]:
-	yield create_supabase_client(access_token)
+def get_db(access_token: str | None = Cookie(default=None)) -> Client:
+    if not access_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required",
+        )
+
+    return create_supabase_client(access_token)
 
 
-def get_public_db() -> Generator[Client, None, None]:
-	yield create_supabase_client()
+def get_public_db() -> Client:
+    return create_supabase_client()
 
 
 SupabaseClient = Annotated[Client, Depends(get_db)]

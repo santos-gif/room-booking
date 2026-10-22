@@ -1,90 +1,71 @@
-<main class="booking">
-	<header>
-		<h1>Book an Appointment</h1>
-	</header>
+<app-header />
+<main class="page" [class.with-drawer]="selectedSlot() && !resultMessage()">
+	<div class="head">
+		<div>
+			<h1>{{ updating ? 'Update booking' : 'Book a room' }}</h1>
+			<p class="lead">
+				{{
+					updating
+						? 'Pick the new day, room and time. Your current booking is replaced.'
+						: 'Choose a weekday, a room, then a one-hour time.'
+				}}
+			</p>
+		</div>
+		@if (!updating) {
+			<p class="chip chip-orange quota" aria-live="polite">
+				{{ bookingsRemaining() }} of 3 bookings left
+			</p>
+		}
+	</div>
 
-	<label for="booking-date">Select a weekday</label>
-	<input
-		id="booking-date"
-		name="booking-date"
-		type="date"
-		[ngModel]="bookingDate()"
-		(ngModelChange)="bookingDate.set($event)"
+	<app-booking-controls
+		[date]="bookingDate()"
+		[room]="roomNumber()"
+		(dateChange)="changeDate($event)"
+		(roomChange)="changeRoom($event)"
 	/>
 
-	<fieldset>
-		<legend>Select Room</legend>
-		<label>
-			<input
-				type="radio"
-				name="room"
-				value="1"
-				[checked]="roomNumber() === 1"
-				(change)="setRoom($event)"
-			/>
-			Discussion Room 1
-		</label>
-		<label>
-			<input
-				type="radio"
-				name="room"
-				value="2"
-				[checked]="roomNumber() === 2"
-				(change)="setRoom($event)"
-			/>
-			Discussion Room 2
-		</label>
-	</fieldset>
-
-	<p>You may book {{ bookingsRemaining() }} more hour(s) on this date.</p>
-	@if (loading()) {
-		<p>Loading availability…</p>
-	}
 	@if (errorMessage()) {
-		<p role="alert">{{ errorMessage() }}</p>
+		<p class="alert" role="alert">{{ errorMessage() }}</p>
+	}
+	@if (bookingsRemaining() === 0) {
+		<p class="alert alert-info" role="status">
+			You hold 3 upcoming bookings. Cancel one to book another.
+		</p>
+	} @else if (noFreeSlot()) {
+		<p class="alert alert-info" role="status">
+			No free times for this date and room. Try another day or room.
+		</p>
 	}
 
-	<section class="slots" aria-label="Available one-hour times">
-		@for (slot of slots(); track slot.start_time) {
-			<button
-				type="button"
-				[disabled]="!slot.available || submitting()"
-				(click)="book(slot)"
-			>
-				{{ slot.start_time | date: 'hh:mm a' : 'Asia/Jakarta' }}
-			</button>
-		}
-	</section>
+	<app-slot-grid
+		[slots]="slots()"
+		[selected]="selectedSlot()"
+		[current]="currentStart()"
+		[loading]="loading()"
+		[disabled]="submitting()"
+		(pick)="pick($event)"
+	/>
 
 	@if (selectedSlot(); as selected) {
 		@if (!resultMessage()) {
-		<aside class="drawer" aria-label="Confirm appointment">
-			<h2>Confirm your appointment</h2>
-			<p>Discussion Room {{ roomNumber() }}</p>
-			<p>{{ selected.start_time | date: 'fullDate' : 'Asia/Jakarta' }}</p>
-			<p>
-				{{ selected.start_time | date: 'hh:mm a' : 'Asia/Jakarta' }} WIB —
-				{{ selected.end_time | date: 'hh:mm a' : 'Asia/Jakarta' }} WIB
-			</p>
-			<button type="button" [disabled]="submitting()" (click)="confirmBooking()">
-				{{ submitting() ? 'Saving…' : 'Confirm' }}
-			</button>
-			<button type="button" (click)="selectedSlot.set(null)">Close</button>
-		</aside>
+			<app-confirm-panel
+				[slot]="selected"
+				[room]="roomNumber()"
+				[updating]="updating"
+				[submitting]="submitting()"
+				(confirmed)="confirmBooking()"
+				(dismissed)="clearSelection()"
+			/>
 		}
 	}
 
 	@if (resultMessage()) {
-		<div class="modal-backdrop">
-			<section class="modal" role="dialog" aria-modal="true">
-				<p>{{ resultMessage() }}</p>
-				@if (calendarReconnectNeeded()) {
-					<button type="button" (click)="reconnectCalendar()">
-						Reconnect Google Calendar
-					</button>
-				}
-				<button type="button" (click)="closeResult()">Continue</button>
-			</section>
-		</div>
+		<app-result-dialog
+			[message]="resultMessage()"
+			[reconnectNeeded]="calendarReconnectNeeded()"
+			(reconnect)="reconnectCalendar()"
+			(closed)="closeResult()"
+		/>
 	}
 </main>

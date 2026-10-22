@@ -1,25 +1,43 @@
-.bookings {
-	margin: 2rem auto;
-	max-width: 55rem;
-	padding: 0 1rem;
-}
-
-header,
-.actions {
-	align-items: center;
+.head {
+	align-items: flex-end;
 	display: flex;
-	gap: 0.75rem;
+	flex-wrap: wrap;
+	gap: 1rem;
 	justify-content: space-between;
+	margin-bottom: 1.5rem;
 }
 
-.booking-card {
-	border: 1px solid #d6dce5;
-	border-radius: 0.75rem;
-	margin: 1rem 0;
-	padding: 1.25rem;
+.head .lead {
+	margin-top: 0.35rem;
 }
 
-.time {
-	font-size: 1.2rem;
-	font-weight: 700;
+.page > .alert {
+	margin-bottom: 1rem;
+}
+
+/* Keeps its height while loading so nothing jumps when the real rows arrive. */
+.panel {
+	min-height: 12rem;
+	padding: 1rem;
+}
+
+.list {
+	display: grid;
+	gap: 0.75rem;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.skeleton {
+	animation: pulse 1.4s ease-in-out infinite;
+	background: var(--line);
+	border-radius: var(--radius);
+	height: 5rem;
+}
+
+@keyframes pulse {
+	50% {
+		opacity: 0.55;
+	}
 }

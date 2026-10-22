@@ -39,8 +39,8 @@ class Settings(BaseSettings):
 		case_sensitive=True,
 		extra="ignore",
 	)
-	CORS_ORIGINS: str = "http://localhost:4200"
-	FRONTEND_URL: str = "http://localhost:4200"
+	CORS_ORIGINS: str = "http://localhost:3000"
+	FRONTEND_URL: str = "http://localhost:3000"
 	COOKIE_SECURE: bool = True
 	COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
 

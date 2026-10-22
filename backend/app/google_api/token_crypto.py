@@ -1,10 +1,10 @@
 from cryptography.fernet import Fernet, InvalidToken
 
-from app.api.v1.google_auth.exceptions import (
+from app.config import settings
+from app.google_api.exceptions import (
 	GoogleConfigurationException,
 	GoogleTokenStorageException,
 )
-from app.config import settings
 
 
 def _fernet() -> Fernet:
