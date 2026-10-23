@@ -6,7 +6,7 @@ Terakhir dijalankan: 2026-10-21.
 
 | Pemeriksaan | Hasil |
 |---|---|
-| Unit test backend (`pytest`, 19 file, 94 test) | PASSED 94/94 |
+| Unit test backend (`pytest`, 19 file, 95 test) | PASSED 95/95 |
 | Unit test frontend (`ng test`, 25 file, 92 test) | PASSED 92/92 |
 | Build produksi (`ng build`) | OK, tanpa peringatan budget |
 | Pemeriksaan tampilan 390×844 dan 1440×900 (12 skenario, API di-mock) | PASSED 12/12 |

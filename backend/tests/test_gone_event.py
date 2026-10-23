@@ -52,7 +52,10 @@ class GoneEventTests(unittest.TestCase):
 		supabase = supabase_with([old_row()])
 		with patch(SERVICE, return_value=gone(404)):
 			cancel_appointment("old", supabase, student_user(), None, None, Response())
-		self.assertEqual(supabase.rpc.call_args.args[1]["new_status"], "cancelled")
+		calls = {c.args[0]: c.args[1] for c in supabase.rpc.call_args_list}
+		self.assertEqual(calls["update_own_appointment_state"]["new_status"], "cancelled")
+		# ...and the cancelled row is deleted right away, so it never lingers in the database.
+		self.assertEqual(calls["remove_own_cancelled_appointment"], {"target_appointment_id": "old"})
 
 	def test_reschedule_succeeds_when_the_old_event_is_already_gone(self) -> None:
 		supabase = supabase_with([old_row()])
@@ -73,3 +76,14 @@ class GoneEventTests(unittest.TestCase):
 				reschedule_appointment("old", payload, supabase_with([]), student_user(), None, None, Response())
 		self.assertEqual(raised.exception.status_code, 404)
 		create.assert_not_called()
+
+
+class CancelCleanupTests(unittest.TestCase):
+	def test_cancel_still_succeeds_when_the_immediate_delete_fails(self) -> None:
+		supabase = supabase_with([old_row()])
+		with (
+			patch(SERVICE, return_value=gone(404)),
+			patch("app.api.v1.appointment.cancel.appointment_queries.remove_own_cancelled", side_effect=RuntimeError("db")),
+			self.assertLogs("app.api.v1.appointment.cancel", level="ERROR"),
+		):
+			cancel_appointment("old", supabase, student_user(), None, None, Response())

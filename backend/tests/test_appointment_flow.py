@@ -38,13 +38,20 @@ class AppointmentFlowTests(unittest.TestCase):
 			Response(),
 		)
 
-		supabase.rpc.assert_called_once_with(
-			"update_own_appointment_state",
-			{
-				"target_appointment_id": "appointment-id",
-				"new_status": "cancelled",
-				"new_sync_status": "synced",
-			},
+		# The state change is the restricted RPC, then the cancelled row is deleted right away.
+		self.assertEqual(
+			[c.args for c in supabase.rpc.call_args_list],
+			[
+				(
+					"update_own_appointment_state",
+					{
+						"target_appointment_id": "appointment-id",
+						"new_status": "cancelled",
+						"new_sync_status": "synced",
+					},
+				),
+				("remove_own_cancelled_appointment", {"target_appointment_id": "appointment-id"}),
+			],
 		)
 
 	def test_appointment_persists_and_syncs_calendar_event(self) -> None:

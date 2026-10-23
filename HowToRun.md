@@ -56,7 +56,7 @@ Login pertama meminta NIM dan jurusan (onboarding), setelah itu masuk ke "My boo
 ## 5. Menjalankan unit test
 
 ```bash
-# backend (94 test)
+# backend (95 test)
 cd backend
 .venv\Scripts\python.exe -m pytest -q
 

@@ -67,3 +67,9 @@ def cancel_appointment(
 		raise CalendarSyncException() from error
 	if not updated_data:
 		raise AppointmentStorageException()
+	# A cancelled booking should leave no trace. Best effort: if this fails (or a reschedule still points
+	# at it) the row stays cancelled, invisible and bookable-around, until the daily purge removes it.
+	try:
+		appointment_queries.remove_own_cancelled(supabase, appointment_id)
+	except Exception:  # noqa: BLE001
+		logger.exception("Could not delete cancelled appointment %s now.", appointment_id)
