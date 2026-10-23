@@ -1,3 +1,4 @@
+"""Moving a booking: the new one is made first, so a failure never leaves the student with nothing."""
 import logging
 from datetime import datetime, timezone
 
@@ -7,7 +8,7 @@ from supabase import Client
 from app.api.v1.appointment.booking import create_appointment
 from app.api.v1.appointment.cancel import cancel_appointment, get_own_appointment
 from app.api.v1.appointment.exceptions import AppointmentStorageException, CalendarSyncException
-from app.api.v1.appointment.slots import _responses, _validate_slot
+from app.api.v1.appointment.slots import to_responses, validate_slot
 from app.api.v1.appointment.types import AppointmentResponse, JAKARTA_TZ, ReschedulePayload
 from app.api.v1.auth.types import AuthenticatedUser
 
@@ -24,7 +25,7 @@ def reschedule_appointment(
 	response: Response,
 ) -> AppointmentResponse:
 	old_appointment = get_own_appointment(supabase, appointment_id, current_user)
-	local_start = _validate_slot(payload.start_time, payload.room_number)
+	local_start = validate_slot(payload.start_time, payload.room_number)
 	try:
 		old_start = datetime.fromisoformat(str(old_appointment["start_time"]))
 	except (KeyError, ValueError) as error:
@@ -35,7 +36,7 @@ def reschedule_appointment(
 		old_appointment.get("room_number") == payload.room_number
 		and old_start.astimezone(JAKARTA_TZ) == local_start
 	):
-		rows = _responses([old_appointment])
+		rows = to_responses([old_appointment])
 		if len(rows) != 1:
 			raise AppointmentStorageException()
 		return rows[0]
@@ -48,30 +49,20 @@ def reschedule_appointment(
 		response,
 		replaces_appointment_id=appointment_id,
 	)
+
+	def cancel(booking_id: str) -> None:
+		cancel_appointment(booking_id, supabase, current_user, access_token, expires_at, response)
+
 	try:
-		cancel_appointment(
-			appointment_id,
-			supabase,
-			current_user,
-			access_token,
-			expires_at,
-			response,
-		)
-	except Exception as error:  # noqa: BLE001 - any failure must undo the new booking
+		cancel(appointment_id)
+	except Exception:  # noqa: BLE001 - any failure of the old booking's cancel must undo the new one
 		try:
-			cancel_appointment(
-				new_appointment.id,
-				supabase,
-				current_user,
-				access_token,
-				expires_at,
-				response,
-			)
-		except Exception as compensation_error:  # noqa: BLE001
+			cancel(new_appointment.id)
+		except Exception as compensation_error:  # noqa: BLE001 - nothing more to try: reconciliation decides
 			logger.error(
 				"Reschedule cleanup failed; both appointments need reconciliation.",
 				exc_info=compensation_error,
 			)
 			raise CalendarSyncException() from compensation_error
-		raise error
+		raise
 	return new_appointment

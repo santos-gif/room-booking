@@ -23,13 +23,15 @@ from app.queries import appointments as appointment_queries
 # Mirrors the database trigger enforce_active_booking_limit.
 MAX_ACTIVE_BOOKINGS = 3
 # A slot closes this long before it starts.
+OPEN_HOUR, CLOSE_HOUR = 8, 17  # slots start on the hour from OPEN_HOUR; the last one ends at CLOSE_HOUR
+SLOT_LENGTH = timedelta(hours=1)
 LEAD = timedelta(minutes=5)
 # Same limit as the database trigger (appointments_booking_window).
 MAX_ADVANCE = timedelta(days=90)
 APPOINTMENTS_ADAPTER = TypeAdapter(list[AppointmentRecord])
 
 
-def _responses(data: object) -> list[AppointmentResponse]:
+def to_responses(data: object) -> list[AppointmentResponse]:
 	try:
 		records = APPOINTMENTS_ADAPTER.validate_python(data or [])
 		return [
@@ -48,51 +50,28 @@ def _responses(data: object) -> list[AppointmentResponse]:
 		raise AppointmentStorageException() from error
 
 
-def _validate_slot(start_time: datetime, room_number: int) -> datetime:
+def validate_slot(start_time: datetime, room_number: int) -> datetime:
 	local_start = start_time.astimezone(JAKARTA_TZ)
 	if room_number not in (1, 2):
 		raise AppointmentValidationException("Choose Discussion Room 1 or 2.")
 	if (
 		local_start.weekday() > 4
-		or not 8 <= local_start.hour < 17
+		or not OPEN_HOUR <= local_start.hour < CLOSE_HOUR
 		or local_start.minute != 0
 		or local_start.second != 0
 		or local_start.microsecond != 0
 	):
 		raise AppointmentValidationException(
-			"Bookings must start on weekdays between 08:00 and 16:00 WIB."
+			f"Bookings must start on weekdays between {OPEN_HOUR:02d}:00 and {CLOSE_HOUR - 1:02d}:00 WIB."
 		)
-	if local_start <= datetime.now(JAKARTA_TZ) + LEAD:
-		raise AppointmentValidationException("Bookings close 5 minutes before the slot starts.")
-	if local_start > datetime.now(JAKARTA_TZ) + MAX_ADVANCE:
-		raise AppointmentValidationException("Bookings open at most 90 days ahead.")
+	now = datetime.now(JAKARTA_TZ)
+	if local_start <= now + LEAD:
+		raise AppointmentValidationException(
+			f"Bookings close {LEAD.seconds // 60} minutes before the slot starts."
+		)
+	if local_start > now + MAX_ADVANCE:
+		raise AppointmentValidationException(f"Bookings open at most {MAX_ADVANCE.days} days ahead.")
 	return local_start
-
-
-def _calendar_event(
-	appointment_id: str,
-	room_number: int,
-	start_time: datetime,
-	end_time: datetime,
-	name: str | None = None,
-	nim: int | None = None,
-) -> dict[str, object]:
-	# Without a name and NIM (reconcile rows do not carry them) fall back to the room only.
-	title = f"Discussion Room {room_number}"
-	if name and nim is not None:
-		title = f"{title}-{name} ({nim})"
-	return {
-		"summary": title,
-		"description": f"Room booking appointment ID: {appointment_id}",
-		"start": {"dateTime": start_time.isoformat(), "timeZone": "Asia/Jakarta"},
-		"end": {"dateTime": end_time.isoformat(), "timeZone": "Asia/Jakarta"},
-	}
-
-
-def _booker_name(user: AuthenticatedUser) -> str:
-	"""Name for the event title: one short line, no control characters (it is shown on the room calendar)."""
-	name = "".join(c for c in " ".join((user.name or "").split()) if c.isprintable())[:60].strip()
-	return name or user.email.partition("@")[0]
 
 
 def get_availability(
@@ -128,7 +107,7 @@ def get_availability(
 	slots = [
 		AvailableSlot(
 			start_time=slot,
-			end_time=slot + timedelta(hours=1),
+			end_time=slot + SLOT_LENGTH,
 			available=(
 				booking_date.weekday() < 5
 				and slot not in booked_starts
@@ -136,7 +115,7 @@ def get_availability(
 				and bookings_used < MAX_ACTIVE_BOOKINGS
 			),
 		)
-		for hour in range(8, 17)
+		for hour in range(OPEN_HOUR, CLOSE_HOUR)
 		for slot in [datetime.combine(booking_date, time(hour), tzinfo=JAKARTA_TZ)]
 	]
 	return AvailabilityResponse(

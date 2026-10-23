@@ -13,7 +13,7 @@ def _valid_booking_date(booking_date: date = Query(alias="date")) -> date:
 	# Years 1 or 9999 would overflow the database's date arithmetic and answer with a 500.
 	today = datetime.now(JAKARTA_TZ).date()
 	if not today - timedelta(days=1) <= booking_date <= today + MAX_ADVANCE + timedelta(days=1):
-		raise AppointmentValidationException("Choose a date within the next 90 days.")
+		raise AppointmentValidationException(f"Choose a date within the next {MAX_ADVANCE.days} days.")
 	return booking_date
 
 

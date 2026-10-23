@@ -6,7 +6,7 @@ from fastapi import Response
 from postgrest.exceptions import APIError
 from supabase import Client
 
-from app.api.v1.appointment.slots import _calendar_event
+from app.api.v1.appointment.calendar_event import build_calendar_event
 from app.api.v1.appointment.types import JAKARTA_TZ
 from app.google_api.calendar_api import create_calendar_event
 from app.google_api.calendar_single_event import (
@@ -22,6 +22,14 @@ from app.google_api.exceptions import (
 from app.queries import appointments as appointment_queries
 
 logger = logging.getLogger(__name__)
+# What a Google or database call may raise without stopping the repair run: the row is logged and retried.
+RECONCILE_ERRORS = (
+	GoogleAuthorizationException,
+	GoogleCalendarOperationException,
+	GoogleCredentialException,
+	GoogleRefreshTokenException,
+	APIError,
+)
 
 
 def stored_utc(value: object) -> datetime | None:
@@ -74,7 +82,7 @@ def sync_row(supabase: Client, row: dict[str, object]) -> str:
 					user_id,
 					calendar_id,
 					event_id,
-					_calendar_event(
+					build_calendar_event(
 						appointment_id,
 						room_number,
 						datetime.fromisoformat(row["start_time"]).astimezone(JAKARTA_TZ),
@@ -97,7 +105,7 @@ def sync_row(supabase: Client, row: dict[str, object]) -> str:
 		):
 			start = datetime.fromisoformat(str(start_value)).astimezone(JAKARTA_TZ)
 			end = datetime.fromisoformat(str(end_value)).astimezone(JAKARTA_TZ)
-			body = _calendar_event(appointment_id, room_number, start, end, *who)
+			body = build_calendar_event(appointment_id, room_number, start, end, *who)
 			if not all(who):
 				# update is a full replace: keep the title the booking was created with.
 				body["summary"] = event.get("summary") or body["summary"]
@@ -115,12 +123,6 @@ def sync_row(supabase: Client, row: dict[str, object]) -> str:
 		row["status"] = "confirmed"
 		row["sync_status"] = "synced"
 		return "synchronized"
-	except (
-		GoogleAuthorizationException,
-		GoogleCalendarOperationException,
-		GoogleCredentialException,
-		GoogleRefreshTokenException,
-		APIError,
-	):
+	except RECONCILE_ERRORS:
 		logger.exception("Appointment %s could not be reconciled.", appointment_id)
 		return "failed"

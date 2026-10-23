@@ -61,7 +61,7 @@ class BookingRollbackTests(unittest.TestCase):
 			supabase.rpc.return_value.execute.return_value = SimpleNamespace(data=[])
 			with (
 				patch("app.api.v1.appointment.booking.room_calendar_id", return_value="room"),
-				patch("app.api.v1.appointment.booking.create_calendar_event", side_effect=error),
+				patch("app.api.v1.appointment.booking_event.create_calendar_event", side_effect=error),
 				self.assertRaises(type(error)),
 				self.assertLogs(level="ERROR") if isinstance(error, RuntimeError) else nullcontext(),
 			):

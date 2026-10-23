@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pydantic import ValidationError
 
 from app.api.v1.appointment.exceptions import AppointmentValidationException
-from app.api.v1.appointment.slots import _validate_slot
+from app.api.v1.appointment.slots import validate_slot
 from app.api.v1.appointment.types import AppointmentPayload, JAKARTA_TZ
 from app.api.v1.auth.types import OnboardingPayload
 
@@ -51,10 +51,10 @@ class BookingRuleTests(unittest.TestCase):
 		open_slot = next_weekday_start(8)
 		last_slot = next_weekday_start(16)
 
-		self.assertEqual(_validate_slot(open_slot, 1), open_slot)
-		self.assertEqual(_validate_slot(last_slot, 2), last_slot)
+		self.assertEqual(validate_slot(open_slot, 1), open_slot)
+		self.assertEqual(validate_slot(last_slot, 2), last_slot)
 		with self.assertRaises(AppointmentValidationException):
-			_validate_slot(next_weekday_start(17), 1)
+			validate_slot(next_weekday_start(17), 1)
 
 	def test_onboarding_rejects_unapproved_major_and_nonpositive_nim(self) -> None:
 		valid = OnboardingPayload(nim=123456, major="Information Technology")
@@ -74,12 +74,12 @@ class BookingWindowTests(unittest.TestCase):
 		from datetime import timedelta
 
 		from app.api.v1.appointment.exceptions import AppointmentValidationException
-		from app.api.v1.appointment.slots import _validate_slot
+		from app.api.v1.appointment.slots import validate_slot
 
 		start = next_weekday_start(9)
-		self.assertEqual(_validate_slot(start, 1), start.astimezone(_validate_slot(start, 1).tzinfo))
+		self.assertEqual(validate_slot(start, 1), start.astimezone(validate_slot(start, 1).tzinfo))
 		far = next_weekday_start(9) + timedelta(days=91)
 		while far.weekday() > 4:
 			far += timedelta(days=1)
 		with self.assertRaises(AppointmentValidationException):
-			_validate_slot(far, 1)
+			validate_slot(far, 1)

@@ -76,12 +76,12 @@ export class BookingFormPage {
 
 	changeRoom(room: 1 | 2): void {
 		this.roomNumber.set(room);
-		this.selectedStart.set(null);
+		this.clearSelection();
 	}
 
 	changeDate(date: string): void {
 		this.bookingDate.set(date);
-		this.selectedStart.set(null);
+		this.clearSelection();
 	}
 
 	pick(slot: AvailableSlot): void {
@@ -131,7 +131,7 @@ export class BookingFormPage {
 
 	closeResult(): void {
 		this.resultMessage.set('');
-		this.selectedStart.set(null);
+		this.clearSelection();
 		if (this.updating && this.saved()) {
 			void this.router.navigate(['/my-bookings']);
 		}

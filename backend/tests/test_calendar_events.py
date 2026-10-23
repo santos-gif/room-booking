@@ -7,7 +7,7 @@ from fastapi import Response
 from google.auth.exceptions import RefreshError
 from googleapiclient.errors import HttpError
 
-from app.api.v1.appointment.slots import _calendar_event
+from app.api.v1.appointment.calendar_event import build_calendar_event
 from app.api.v1.appointment.types import JAKARTA_TZ
 from app.config import settings
 from app.google_api.calendar_api import create_calendar_event, room_calendar_id
@@ -22,7 +22,7 @@ from app.google_api.exceptions import (
 class CalendarEventTests(unittest.TestCase):
 	def test_calendar_event_serializes_jakarta_wall_time_and_zone(self) -> None:
 		start = datetime(2026, 10, 9, 19, 0, tzinfo=JAKARTA_TZ)
-		event = _calendar_event(
+		event = build_calendar_event(
 			"appointment-test-id",
 			1,
 			start,

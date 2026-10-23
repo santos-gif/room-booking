@@ -4,6 +4,7 @@ import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Appointment } from '../types/appointment';
 
+/** A cached list younger than this is shown as is; it only costs a server call (and a Google check) after. */
 const FRESH_MS = 60_000;
 /** After a failed load, the background poll waits this long instead of hammering a struggling server. */
 const RETRY_AFTER_ERROR_MS = 60_000;
@@ -68,9 +69,14 @@ export class BookingsStore {
 
 	/** Call after a booking was made or moved: the cached list is wrong until the next refresh. */
 	invalidate(): void {
+		this.discardCache();
+		this.loaded.set(false);
+	}
+
+	/** The cached list is no longer trusted, and any list request already on its way is outdated. */
+	private discardCache(): void {
 		this.version++;
 		this.fetchedAt = 0;
-		this.loaded.set(false);
 	}
 
 	cancel(id: string): Observable<void> {
@@ -78,8 +84,7 @@ export class BookingsStore {
 			tap(() => {
 				this.appointments.update((list) => list.filter((a) => a.id !== id));
 				// A list request that started before this cancel would bring the booking back: drop it.
-				this.version++;
-				this.fetchedAt = 0;
+				this.discardCache();
 			}),
 		);
 	}

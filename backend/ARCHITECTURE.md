@@ -24,12 +24,20 @@ app/
     appointments.py  list, get, insert, state updates, availability, reconciliation RPCs
   api/v1/
     api_router.py    mounts the three routers below
-    auth/            router.py, helper.py (current user, renew tokens, onboarding), types, exceptions
-    google_auth/     router.py (routes only), login.py (start login), callback.py (finish login)
+    auth/            router.py, helper.py (current user, renew tokens, onboarding), revoke.py (end a
+                     session on Supabase's side at logout), types, exceptions
+    google_auth/     router.py (routes only), login.py (start login), then the finish-login steps:
+      callback.py          the order of steps; every refusal becomes a redirect with a fixed code
+      callback_identity.py who may sign in (domain, verified email, Workspace claim), SignInRefused
+      callback_profile.py  Supabase session, profile, and the stored Google refresh token
     appointment/     router.py, types.py, exceptions.py, plus:
-      slots.py         slot rules, availability, response shapes
-      booking.py       list and create a booking
-      cancel.py        cancel a booking (and find one of your own)
+      slots.py         slot rules (hours, lead, 90-day window), availability, response shapes
+      booking_date.py  the availability `date` parameter, checked where input enters
+      calendar_event.py   title and body of a booking's Google event
+      booking.py       list a student's bookings; create one (reserve, event, confirm)
+      booking_event.py create the Google event, or roll the reservation back
+      rollback.py      discard or mark failed a pending booking
+      cancel.py        cancel a booking (its event, then the row, deleted straight away)
       reschedule.py    move a booking (create new, cancel old)
       reconcile.py     cron job: fix bookings that disagree with Google Calendar
       reconcile_sync.py          one booking vs its calendar event
@@ -53,13 +61,15 @@ Tests patch a name where it is *used* (e.g. `booking.create_calendar_event`).
 |---------------------------------------------|--------------------------------------------------------|
 | how login works                             | `api/v1/google_auth/login.py` and `callback.py`        |
 | the raw Google calls (login, id token)      | `google_api/oauth.py`                                  |
-| which emails may sign in                    | `api/v1/google_auth/callback.py` (`_is_allowed_email`) |
+| which emails may sign in                    | `api/v1/google_auth/callback_identity.py`              |
 | a cookie name, lifetime or flags            | `cookies.py`                                           |
 | how Google calendar events are created      | `google_api/calendar_api.py`                           |
 | which calendar a room uses                  | `google_api/calendar_api.py` (`room_calendar_id`)      |
 | how the Google token is stored / refreshed  | `queries/google_tokens.py`, `google_api/credentials.py`|
 | booking hours, weekdays, max 3, 5-min lead  | `api/v1/appointment/slots.py`                          |
-| what happens when a booking fails midway    | `api/v1/appointment/booking.py`                        |
+| what happens when a booking fails midway    | `appointment/booking_event.py`, `rollback.py`          |
+| what a booking looks like in Google Calendar| `appointment/calendar_event.py`                        |
+| what logout really revokes                  | `api/v1/auth/revoke.py`                                |
 | cancelling or rescheduling                  | `cancel.py`, `reschedule.py` in `appointment/`         |
 | the nightly repair job                      | `appointment/reconcile*.py`                            |
 | deleted-in-Google bookings on My bookings   | `appointment/verify.py`                                |
@@ -72,18 +82,14 @@ Tests patch a name where it is *used* (e.g. `booking.create_calendar_event`).
 - `google_api/credentials.py` still takes `response` and sets the refreshed-token cookie.
   That is an exception to "google_api builds no HTTP responses". It also reads the token
   through `queries/google_tokens.py`, so google_api and queries import each other's level.
-- `complete_google_oauth` in `callback.py` keeps a test-only branch that accepts a
-  `Request` and a `Client` in place of `state` and `code`. Left alone as a separate follow-up.
-- `callback.py` is about 160 lines and `appointment/router.py` is about 160 lines.
-  They are over the 150-line goal; splitting `callback.py` would scatter one login flow.
 - Some Supabase queries still live outside `queries/` (users table in `auth/helper.py` and
-  `callback.py`, the profile RPC in `callback.py`).
+  `callback_profile.py`).
 - Reconcile has only `booker_id`, no name or NIM, and there is no migration for it. A recreated
   event is titled `Discussion Room {n}`; updating an existing event keeps its current title.
-- The database itself does not enforce the 5-minute lead rule or reject past start times;
-  only `slots.py` (`LEAD`) does. A direct database write could still book a past slot.
-- `users.nim` has no unique constraint in `supabase/migrations`, so the duplicate-NIM 409 in
-  `auth/helper.py` only fires once such a constraint exists.
+- The 5-minute lead rule and the 90-day window are mirrored by the database trigger
+  `appointments_booking_window`; keep `slots.py` (`LEAD`, `MAX_ADVANCE`) and the trigger in step.
+- Students write to the room calendars with their own Google token, so a hostile student could
+  delete others' events through Google's API. The real fix is one service credential (not built).
 - The catch-all 500 handler in `main.py` is served outside `CORSMiddleware`, so a browser may
   not see CORS headers on that response.
 - `GET /api/v1/appointments/?verify=true` checks up to 10 upcoming *confirmed* bookings of the

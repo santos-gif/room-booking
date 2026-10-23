@@ -52,7 +52,7 @@ app.add_middleware(
 
 
 @app.exception_handler(APIError)
-async def handle_database_error(_request: Request, error: APIError) -> JSONResponse:
+async def handle_database_error(_request: Request, _error: APIError) -> JSONResponse:
 	logger.exception("Unhandled Supabase request failure.")
 	return JSONResponse(
 		status_code=500,

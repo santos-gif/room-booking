@@ -2,6 +2,10 @@ import { DatePipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
 import { jakartaDate, jakartaToday } from '../../../../core/utils/jakarta-today';
 
+const DAY_MS = 86_400_000;
+/** Same limit as the server (slots.MAX_ADVANCE). */
+const MAX_DAYS_AHEAD = 90;
+
 /** Date picker and room switch. Owns no state: the page passes values in and hears changes out. */
 @Component({
 	selector: 'app-booking-controls',
@@ -17,9 +21,9 @@ export class BookingControls {
 	readonly dateChange = output<string>();
 	readonly roomChange = output<1 | 2>();
 	protected readonly rooms = [1, 2] as const;
-	/** Same window as the server: today through 90 days ahead (Jakarta). */
+	/** The bookable window: today through MAX_DAYS_AHEAD (Jakarta). */
 	protected readonly minDate = jakartaToday();
-	protected readonly maxDate = jakartaDate(new Date(Date.now() + 90 * 86_400_000));
+	protected readonly maxDate = jakartaDate(new Date(Date.now() + MAX_DAYS_AHEAD * DAY_MS));
 
 	protected pick(picker: HTMLInputElement): void {
 		if (picker.value) {

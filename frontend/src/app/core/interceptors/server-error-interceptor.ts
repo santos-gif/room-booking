@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { catchError, throwError } from 'rxjs';
 import { ErrorDialog } from '../../shared/components/error-dialog/error-dialog';
+import { DIALOG_WIDTH } from '../../shared/components/dialog-width';
 
 export const serverErrorInterceptor: HttpInterceptorFn = (req, next) => {
 	const dialog = inject(MatDialog);
@@ -19,7 +20,7 @@ export const serverErrorInterceptor: HttpInterceptorFn = (req, next) => {
 						: 'The server is experiencing issues. Please try again in a moment.';
 				dialog.open(ErrorDialog, {
 					data: { errorMessage: message },
-					width: '400px',
+					width: DIALOG_WIDTH,
 				});
 			}
 			return throwError(() => error);

@@ -1,12 +1,12 @@
 import logging
 
-from fastapi import APIRouter, Cookie, Depends, Query, Request, Response
+from fastapi import APIRouter, Cookie, Depends, Query, Response
 from fastapi.responses import RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.api.v1.auth.helper import get_current_user
 from app.api.v1.auth.types import AuthenticatedUser
-from app.api.v1.google_auth.callback import _failure_redirect, complete_google_oauth
+from app.api.v1.google_auth.callback import complete_google_oauth, failure_redirect
 from app.api.v1.google_auth.login import create_google_login_response
 from app.cookies import (
 	GOOGLE_ACCESS_COOKIE,
@@ -30,7 +30,7 @@ async def login() -> RedirectResponse:
 		return create_google_login_response()
 	except Exception:
 		logger.exception("Could not start Google sign-in.")
-		return _failure_redirect("server_unavailable")
+		return failure_redirect("server_unavailable")
 
 
 @router.get("/oauth2callback", response_class=RedirectResponse, response_model=None)
@@ -55,10 +55,10 @@ async def oauth2callback(
 		)
 	except GoogleRefreshConsentException:
 		logger.warning("Google did not grant offline Calendar access.")
-		return _failure_redirect("calendar_consent_required")
+		return failure_redirect("calendar_consent_required")
 	except Exception:
 		logger.exception("Google sign-in callback failed.")
-		return _failure_redirect("google_exchange_failed")
+		return failure_redirect("google_exchange_failed")
 
 
 @router.get("/events", response_model=list[GoogleCalendarEvent])

@@ -1,6 +1,10 @@
 import { ErrorHandler, inject, Injectable, Injector, NgZone } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { ErrorDialog } from '../../shared/components/error-dialog/error-dialog';
+import { DIALOG_WIDTH } from '../../shared/components/dialog-width';
+
+/** A reload is attempted at most this often, so a page that keeps failing cannot loop. */
+const RELOAD_COOLDOWN_MS = 30_000;
 
 const CHUNK_FAILURE =
 	/Loading chunk|Failed to fetch dynamically imported module|error loading dynamically imported module/i;
@@ -36,7 +40,7 @@ export class ClientErrorHandler implements ErrorHandler {
 						errorMessage:
 							'Something went wrong. Close this and carry on; if a page looks stuck, reload it.',
 					},
-					width: '400px',
+					width: DIALOG_WIDTH,
 				});
 			}
 		});
@@ -45,7 +49,7 @@ export class ClientErrorHandler implements ErrorHandler {
 	private reloadOnce(): void {
 		try {
 			const last = Number(sessionStorage.getItem(RELOAD_KEY) ?? 0);
-			if (Date.now() - last < 30_000) {
+			if (Date.now() - last < RELOAD_COOLDOWN_MS) {
 				return;
 			}
 			sessionStorage.setItem(RELOAD_KEY, String(Date.now()));

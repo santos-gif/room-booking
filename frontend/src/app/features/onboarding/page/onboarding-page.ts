@@ -1,20 +1,21 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth-service';
 import { Major } from '../../../core/types/auth';
 import { AppHeader } from '../../../shared/components/app-header/app-header';
 import { ProfileForm } from '../components/profile-form/profile-form';
-import { OnboardingService } from '../services/onboarding.service';
+
+type ProfileDraft = { nim: number | null; major: Major | '' };
 
 @Component({
-	providers: [OnboardingService],
 	imports: [ProfileForm, AppHeader],
 	selector: 'app-onboarding-page',
 	templateUrl: './onboarding-page.html',
 	styleUrl: './onboarding-page.css',
 })
 export class OnboardingPage {
-	private readonly onboardingService = inject(OnboardingService);
+	private readonly auth = inject(AuthService);
 	private readonly router = inject(Router);
 	readonly nim = signal<number | null>(null);
 	readonly major = signal<Major | ''>('');
@@ -22,9 +23,8 @@ export class OnboardingPage {
 	readonly submitting = signal(false);
 	// The same form edits the profile later (route data mode = 'edit'), e.g. when the major changes.
 	readonly editing = inject(ActivatedRoute).snapshot.data['mode'] === 'edit';
-	private readonly auth = inject(AuthService);
 	// What the server holds now, so "Save changes" only lights up once something differs.
-	private readonly saved = signal<{ nim: number | null; major: Major | '' } | null>(null);
+	private readonly saved = signal<ProfileDraft | null>(null);
 	readonly canSave = computed(() => {
 		const details = this.details();
 		if (!details || !this.editing) {
@@ -39,17 +39,23 @@ export class OnboardingPage {
 
 	constructor() {
 		if (this.editing) {
-			this.auth.me().subscribe({
-				next: (user) => {
-					this.nim.set(user.nim);
-					this.major.set(user.major ?? '');
-					this.saved.set({ nim: user.nim, major: user.major ?? '' });
-				},
-				error: () =>
-					this.errorMessage.set(
-						'Unable to load your profile. Reload the page to try again.',
-					),
-			});
+			this.auth
+				.me()
+				.pipe(takeUntilDestroyed())
+				.subscribe({
+					next: (user) => {
+						this.nim.set(user.nim);
+						this.major.set(user.major ?? '');
+						this.saved.set({
+							nim: user.nim,
+							major: user.major ?? '',
+						});
+					},
+					error: () =>
+						this.errorMessage.set(
+							'Unable to load your profile. Reload the page to try again.',
+						),
+				});
 		}
 	}
 
@@ -72,7 +78,8 @@ export class OnboardingPage {
 		}
 		this.submitting.set(true);
 		this.errorMessage.set('');
-		this.onboardingService.saveOnboarding(details.nim, details.major).subscribe({
+		// AuthService keeps the cached user the route guards read, so the guards see the saved profile.
+		this.auth.saveOnboarding(details.nim, details.major).subscribe({
 			next: () => void this.router.navigate(['/my-bookings']),
 			error: () => {
 				this.errorMessage.set(

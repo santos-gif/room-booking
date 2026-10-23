@@ -7,7 +7,7 @@ from app.api.v1.appointment.exceptions import (
 	AppointmentStorageException,
 	AppointmentValidationException,
 )
-from app.api.v1.appointment.slots import LEAD, _validate_slot, get_availability
+from app.api.v1.appointment.slots import LEAD, validate_slot, get_availability
 from app.api.v1.appointment.types import JAKARTA_TZ
 
 from support import student_user
@@ -33,10 +33,10 @@ class LeadRuleTests(unittest.TestCase):
 
 	def test_validation_closes_five_minutes_before_start(self) -> None:
 		with clock(15, 54, 59):
-			self.assertEqual(_validate_slot(SLOT, 1), SLOT)
+			self.assertEqual(validate_slot(SLOT, 1), SLOT)
 		for second in (0, 1):
 			with clock(15, 55, second), self.assertRaises(AppointmentValidationException) as caught:
-				_validate_slot(SLOT, 1)
+				validate_slot(SLOT, 1)
 			self.assertIn("5 minutes", caught.exception.detail)
 
 	def _slot_16(self):

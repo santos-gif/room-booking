@@ -4,6 +4,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth-service';
 import { NavigationLock } from '../../../core/services/navigation-lock';
 import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
+import { DIALOG_WIDTH } from '../dialog-width';
 
 @Component({
 	imports: [RouterLink, RouterLinkActive],
@@ -21,7 +22,7 @@ export class AppHeader {
 	logout(): void {
 		this.dialog
 			.open<ConfirmDialog, unknown, boolean>(ConfirmDialog, {
-				width: '400px',
+				width: DIALOG_WIDTH,
 				data: {
 					title: 'Sign out?',
 					message: 'You will need to sign in with Google again to book or manage rooms.',

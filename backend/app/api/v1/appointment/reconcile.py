@@ -10,14 +10,13 @@ from postgrest.exceptions import APIError
 from supabase import Client
 
 from app.api.v1.appointment.reconcile_replacements import finish_replacements
-from app.api.v1.appointment.reconcile_sync import stored_utc, sync_row
+from app.api.v1.appointment.reconcile_sync import RECONCILE_ERRORS, stored_utc, sync_row
 from app.api.v1.appointment.types import ReconciliationResponse
 from app.config import settings
 from app.google_api.calendar_api import room_calendar_id
 from app.google_api.calendar_single_event import delete_calendar_event
 from app.google_api.exceptions import (
 	GoogleAuthorizationException,
-	GoogleCalendarOperationException,
 	GoogleCredentialException,
 	GoogleRefreshTokenException,
 )
@@ -64,13 +63,7 @@ def _reconcile_pending(supabase: Client, row: dict[str, object]) -> str | None:
 	"""Never promote a pending booking: its request died, so undo it instead."""
 	try:
 		return "released" if _discard_stale_pending(supabase, row) else None
-	except (
-		GoogleAuthorizationException,
-		GoogleCalendarOperationException,
-		GoogleCredentialException,
-		GoogleRefreshTokenException,
-		APIError,
-	):
+	except RECONCILE_ERRORS:
 		logger.exception("Pending appointment %s could not be cleaned up.", row.get("id"))
 		return "failed"
 

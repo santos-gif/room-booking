@@ -30,11 +30,11 @@ class AppointmentFlowTests(unittest.TestCase):
 				return_value="room-calendar",
 			),
 			patch(
-				"app.api.v1.appointment.booking.create_calendar_event",
+				"app.api.v1.appointment.booking_event.create_calendar_event",
 				side_effect=GoogleCalendarOperationException(),
 			),
 			patch(
-				"app.api.v1.appointment.booking.delete_calendar_event",
+				"app.api.v1.appointment.booking_event.delete_calendar_event",
 				side_effect=delete_effect,
 			),
 			self.assertRaises(CalendarSyncException),
@@ -89,8 +89,8 @@ class CalendarAccessTests(unittest.TestCase):
 		supabase.rpc.return_value.execute.return_value = SimpleNamespace(data=[])
 		with (
 			patch("app.api.v1.appointment.booking.room_calendar_id", return_value="room-calendar"),
-			patch("app.api.v1.appointment.booking.create_calendar_event", side_effect=effect),
-			patch("app.api.v1.appointment.booking.delete_calendar_event"),
+			patch("app.api.v1.appointment.booking_event.create_calendar_event", side_effect=effect),
+			patch("app.api.v1.appointment.booking_event.delete_calendar_event"),
 			self.assertLogs("app.api.v1.appointment.booking", level="ERROR"),
 		):
 			create_appointment(

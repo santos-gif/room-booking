@@ -5,16 +5,7 @@
  */
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import {
-	catchError,
-	finalize,
-	Observable,
-	of,
-	shareReplay,
-	tap,
-	throwError,
-	timeout,
-} from 'rxjs';
+import { catchError, finalize, Observable, of, shareReplay, tap, throwError, timeout } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthenticatedUser, Major } from '../types/auth';
 
@@ -24,9 +15,9 @@ const LOGOUT_TIMEOUT_MS = 8_000;
 export class AuthService {
 	private readonly http = inject(HttpClient);
 
-	login = (): void => {
+	login(): void {
 		window.location.assign(`${environment.apiUrl}/google-auth/login`);
-	};
+	}
 
 	// The route guard asks for the user on every navigation; each ask used to be a round trip to a
 	// serverless backend. Keep one answer per session instead (a failed request is not cached).

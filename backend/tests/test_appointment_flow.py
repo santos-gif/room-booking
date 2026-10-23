@@ -84,7 +84,7 @@ class AppointmentFlowTests(unittest.TestCase):
 				return_value="room-calendar",
 			),
 			patch(
-				"app.api.v1.appointment.booking.create_calendar_event",
+				"app.api.v1.appointment.booking_event.create_calendar_event",
 				return_value={"id": event_uuid},
 			) as create_event,
 		):

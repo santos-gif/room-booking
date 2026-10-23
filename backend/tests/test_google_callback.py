@@ -59,7 +59,7 @@ class GoogleOAuthTests(unittest.TestCase):
 				return_value=user_supabase,
 			) as create_user_client,
 			patch(
-				"app.api.v1.google_auth.callback.encrypt_refresh_token",
+				"app.api.v1.google_auth.callback_profile.encrypt_refresh_token",
 				return_value="encrypted-google-refresh-token",
 			),
 			patch.object(settings, "GOOGLE_CLIENT_ID", "google-client-id"),

@@ -25,7 +25,7 @@ class ConcurrentSaveTests(unittest.TestCase):
 		start = next_weekday_start(9)
 		with (
 			patch("app.api.v1.appointment.booking.room_calendar_id", return_value="room"),
-			patch("app.api.v1.appointment.booking.create_calendar_event", create),
+			patch("app.api.v1.appointment.booking_event.create_calendar_event", create),
 		):
 			create_appointment(
 				AppointmentPayload(room_number=1, start_time=start),
@@ -80,7 +80,7 @@ class ConcurrentSaveTests(unittest.TestCase):
 			supabase = self._supabase(db_error(code))
 			with (
 				patch("app.api.v1.appointment.booking.room_calendar_id", return_value="room"),
-				patch("app.api.v1.appointment.booking.create_calendar_event", create),
+				patch("app.api.v1.appointment.booking_event.create_calendar_event", create),
 				self.assertRaises(AppointmentNotFoundException),
 			):
 				create_appointment(

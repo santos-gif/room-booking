@@ -1,3 +1,4 @@
+"""Cancelling a booking: its Google event first, then the database row, which is deleted right away."""
 import logging
 
 from fastapi import Response
@@ -71,5 +72,5 @@ def cancel_appointment(
 	# at it) the row stays cancelled, invisible and bookable-around, until the daily purge removes it.
 	try:
 		appointment_queries.remove_own_cancelled(supabase, appointment_id)
-	except Exception:  # noqa: BLE001
+	except Exception:  # noqa: BLE001 - the booking is cancelled; the daily purge removes the leftover row
 		logger.exception("Could not delete cancelled appointment %s now.", appointment_id)

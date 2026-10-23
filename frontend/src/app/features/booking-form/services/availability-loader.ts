@@ -13,6 +13,11 @@ interface AvailabilityQuery {
 	excludeId?: string;
 }
 
+/** What a student may hold at once (the server enforces it; this is only the number shown before the first answer). */
+const BOOKING_LIMIT = 3;
+/** How often a visible tab asks again, so a slot someone else just took disappears. */
+const REFRESH_MS = 60_000;
+
 /**
  * Slots for the chosen day and room. At the start of every date, room or reload change the slots
  * are emptied and `loading` is true, so a list from another room can never show (or be clicked)
@@ -21,7 +26,7 @@ interface AvailabilityQuery {
  */
 export function loadAvailability(api: BookingFormService, query: AvailabilityQuery) {
 	const slots = signal<AvailableSlot[]>([]);
-	const bookingsRemaining = signal(3);
+	const bookingsRemaining = signal(BOOKING_LIMIT);
 	const loading = signal(true);
 	const error = signal('');
 	/** The booking being updated no longer exists (the server answers 404 for it). */
@@ -34,13 +39,16 @@ export function loadAvailability(api: BookingFormService, query: AvailabilityQue
 		slots.set([]);
 		loading.set(true);
 		error.set('');
-		const subscription = visibleTimer(60_000)
+		const subscription = visibleTimer(REFRESH_MS)
 			.pipe(
 				switchMap(() =>
 					api.availability(date, room, query.excludeId).pipe(
 						catchError((failure: { status?: number }) => {
 							// 404 can only mean the excluded booking is gone: the route itself exists.
-							gone.set(failure.status === 404 && !!query.excludeId);
+							gone.set(
+								failure.status === 404 &&
+									!!query.excludeId,
+							);
 							error.set(
 								'Unable to refresh availability. Please try again.',
 							);

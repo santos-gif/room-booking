@@ -19,23 +19,29 @@ export class LoginPage {
 	private readonly currentUser = toSignal<AuthenticatedUser | null>(this.loginService.me(), {
 		initialValue: null,
 	});
-	private readonly deniedEffect = effect(() => {
-		const reason = this.loginService.deniedReason();
-		if (reason) {
-			void this.router.navigate(['/access-denied'], {
-				queryParams: { reason },
-				replaceUrl: true,
-			});
-		}
-	});
-	private readonly redirectEffect = effect(() => {
-		const user = this.currentUser();
-		// A failed or refused sign-in must show its message even when an older session cookie is still
-		// valid; the student can then retry instead of being silently sent on with a broken Calendar link.
-		if (user && !this.loginService.deniedReason() && !this.loginService.errorMessage()) {
-			void this.router.navigate([
-				user.onboarding_complete ? '/my-bookings' : '/onboarding',
-			]);
-		}
-	});
+	constructor() {
+		effect(() => {
+			const reason = this.loginService.deniedReason();
+			if (reason) {
+				void this.router.navigate(['/access-denied'], {
+					queryParams: { reason },
+					replaceUrl: true,
+				});
+			}
+		});
+		effect(() => {
+			const user = this.currentUser();
+			// A failed or refused sign-in must show its message even when an older session cookie is still
+			// valid; the student can then retry instead of being silently sent on with a broken Calendar link.
+			if (
+				user &&
+				!this.loginService.deniedReason() &&
+				!this.loginService.errorMessage()
+			) {
+				void this.router.navigate([
+					user.onboarding_complete ? '/my-bookings' : '/onboarding',
+				]);
+			}
+		});
+	}
 }

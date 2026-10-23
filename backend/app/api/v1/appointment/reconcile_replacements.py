@@ -1,16 +1,9 @@
 import logging
 
 from fastapi import Response
-from postgrest.exceptions import APIError
 from supabase import Client
 
 from app.google_api.calendar_single_event import delete_calendar_event
-from app.google_api.exceptions import (
-	GoogleAuthorizationException,
-	GoogleCalendarOperationException,
-	GoogleCredentialException,
-	GoogleRefreshTokenException,
-)
 from app.queries import appointments as appointment_queries
 from app.queries.appointments import ACTIVE_STATUSES
 

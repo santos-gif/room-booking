@@ -10,7 +10,10 @@ import { AppHeader } from '../../../shared/components/app-header/app-header';
 import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { BookingCard } from '../components/booking-card/booking-card';
 import { EmptyState } from '../components/empty-state/empty-state';
+import { DIALOG_WIDTH } from '../../../shared/components/dialog-width';
+import { ApiFailure, serverDetail } from '../../../core/utils/api-failure';
 
+const CANCEL_FAILED = 'Unable to cancel this appointment. It has not been removed.';
 // A tick every 35 s, just over the backend's 30 s check cooldown, so every poll really asks Google.
 const POLL_MS = 35_000;
 // A list is "too old" after 30 s: the response of the previous poll lands a moment after its tick, so a
@@ -58,7 +61,7 @@ export class MyBookingsPage {
 	askToCancel(appointment: Appointment): void {
 		this.dialog
 			.open<ConfirmDialog, unknown, boolean>(ConfirmDialog, {
-				width: '400px',
+				width: DIALOG_WIDTH,
 				data: {
 					title: 'Cancel this booking?',
 					message: 'The slot is freed for other people',
@@ -80,14 +83,13 @@ export class MyBookingsPage {
 		this.calendarReconnectNeeded.set(false);
 		this.store.cancel(appointment.id).subscribe({
 			next: () => this.busyId.set(''),
-			error: (error: { status?: number; error?: { detail?: unknown } }) => {
-				const detail = error.error?.detail;
+			error: (error: ApiFailure) => {
+				const reconnect = error.status === 401;
 				this.busyId.set('');
-				this.calendarReconnectNeeded.set(error.status === 401);
+				this.calendarReconnectNeeded.set(reconnect);
+				// The server's text is only used for the Google-token case, where it says what to do.
 				this.cancelError.set(
-					error.status === 401 && typeof detail === 'string'
-						? detail
-						: 'Unable to cancel this appointment. It has not been removed.',
+					(reconnect ? serverDetail(error) : null) ?? CANCEL_FAILED,
 				);
 			},
 		});

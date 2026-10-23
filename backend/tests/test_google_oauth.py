@@ -2,17 +2,17 @@ import unittest
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
-from app.api.v1.google_auth.callback import _is_allowed_email
+from app.api.v1.google_auth.callback_identity import is_allowed_email
 from app.api.v1.google_auth.login import create_google_login_response
 from app.config import settings
 
 
 class GoogleOAuthTests(unittest.TestCase):
 	def test_google_email_domain_validation_is_exact(self) -> None:
-		self.assertTrue(_is_allowed_email("student@student.pradita.ac.id"))
-		self.assertTrue(_is_allowed_email("staff@pradita.ac.id"))
-		self.assertFalse(_is_allowed_email("user@evil-pradita.ac.id"))
-		self.assertFalse(_is_allowed_email("user@pradita.ac.id.evil.com"))
+		self.assertTrue(is_allowed_email("student@student.pradita.ac.id"))
+		self.assertTrue(is_allowed_email("staff@pradita.ac.id"))
+		self.assertFalse(is_allowed_email("user@evil-pradita.ac.id"))
+		self.assertFalse(is_allowed_email("user@pradita.ac.id.evil.com"))
 
 	def test_google_login_requests_calendar_events_and_configured_callback(self) -> None:
 		redirect_uri = "https://api.example.test/api/v1/google-auth/oauth2callback"

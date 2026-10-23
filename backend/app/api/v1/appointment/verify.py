@@ -2,11 +2,13 @@
 import logging
 import time
 from datetime import datetime, timezone
+from typing import TypeGuard
 
 from fastapi import Response
 from supabase import Client
 
-from app.api.v1.appointment.slots import _booker_name, _calendar_event, _responses
+from app.api.v1.appointment.calendar_event import booker_name, build_calendar_event
+from app.api.v1.appointment.slots import to_responses
 from app.api.v1.appointment.types import AppointmentResponse, JAKARTA_TZ
 from app.api.v1.auth.types import AuthenticatedUser
 from app.google_api.calendar_single_event import (
@@ -18,7 +20,10 @@ from app.queries import appointments as appointment_queries
 
 logger = logging.getLogger(__name__)
 
+# Each check is up to three Google calls, so only a student's first few (soonest) bookings are looked at;
+# a student holds at most three upcoming bookings anyway.
 MAX_CHECKED = 10
+MAX_TRACKED_USERS = 1000  # cooldown entries kept in memory before the stale ones are swept
 # Stop checking after this long so one slow Google day cannot stall the list.
 BUDGET_SECONDS = 8.0
 COOLDOWN_SECONDS = 30.0
@@ -32,7 +37,7 @@ def _on_cooldown(user_id: str) -> bool:
 	last = _last_verified.get(user_id)
 	if last is not None and now - last < COOLDOWN_SECONDS:
 		return True
-	if len(_last_verified) > 1000:
+	if len(_last_verified) > MAX_TRACKED_USERS:
 		for key in [k for k, v in _last_verified.items() if now - v >= COOLDOWN_SECONDS]:
 			del _last_verified[key]
 	_last_verified[user_id] = now
@@ -62,7 +67,7 @@ def _check_row(supabase: Client, user: AuthenticatedUser, row: dict[str, object]
 		return True
 	start = datetime.fromisoformat(str(row["start_time"])).astimezone(JAKARTA_TZ)
 	end = datetime.fromisoformat(str(row["end_time"])).astimezone(JAKARTA_TZ)
-	body = _calendar_event(str(appointment_id), int(str(room)), start, end, _booker_name(user), user.nim)
+	body = build_calendar_event(str(appointment_id), int(str(room)), start, end, booker_name(user), user.nim)
 	if event.get("summary") != body["summary"]:
 		# Heals events made before the title change; update is a full replace, so send it all.
 		update_calendar_event(
@@ -72,7 +77,7 @@ def _check_row(supabase: Client, user: AuthenticatedUser, row: dict[str, object]
 	return True
 
 
-def _checkable(row: object) -> bool:
+def _checkable(row: object) -> TypeGuard[dict[str, object]]:
 	# Pending rows may be mid-creation (no event yet), so only confirmed ones are judged.
 	return (
 		isinstance(row, dict)
@@ -87,9 +92,9 @@ def _checkable(row: object) -> bool:
 def verify_appointments(supabase: Client, user: AuthenticatedUser) -> list[AppointmentResponse]:
 	data = appointment_queries.list_active(supabase, user.id)
 	if not isinstance(data, list):
-		return _responses(data)
+		return to_responses(data)
 	if _on_cooldown(user.id):
-		return _responses(data)
+		return to_responses(data)
 	deadline = time.monotonic() + BUDGET_SECONDS
 	kept: list[object] = []
 	checked = 0
@@ -97,9 +102,9 @@ def verify_appointments(supabase: Client, user: AuthenticatedUser) -> list[Appoi
 		try:
 			if checked < MAX_CHECKED and time.monotonic() < deadline and _checkable(row):
 				checked += 1
-				if not _check_row(supabase, user, row):  # type: ignore[arg-type]
+				if not _check_row(supabase, user, row):
 					continue
 		except Exception:  # noqa: BLE001 - never drop a booking on uncertainty
 			logger.exception("Could not verify appointment %r.", row.get("id") if isinstance(row, dict) else row)
 		kept.append(row)
-	return _responses(kept)
+	return to_responses(kept)

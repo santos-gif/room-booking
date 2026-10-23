@@ -1,3 +1,5 @@
+import { ApiFailure, serverDetail } from '../../../core/utils/api-failure';
+
 const FAILED = 'Unable to complete the booking. Your existing booking was preserved.';
 /** Shown while an update page is closing because its booking no longer exists. */
 export const NOT_FOUND = 'We could not find that booking. Open Update from My bookings again.';
@@ -10,13 +12,9 @@ export interface BookingFailure {
 }
 
 /** Turns a failed book/update call into what the student sees. Never shows a non-string detail. */
-export function describeBookingFailure(error: {
-	status?: number;
-	error?: { detail?: unknown };
-}): BookingFailure {
-	const detail = error.error?.detail;
+export function describeBookingFailure(error: ApiFailure): BookingFailure {
 	return {
 		reconnect: error.status === 401,
-		message: error.status === 409 ? TAKEN : typeof detail === 'string' ? detail : FAILED,
+		message: error.status === 409 ? TAKEN : (serverDetail(error) ?? FAILED),
 	};
 }

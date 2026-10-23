@@ -9,7 +9,7 @@ from support import next_weekday_start, pending_record, student_user
 from app.api.v1.appointment.booking import create_appointment
 from app.api.v1.appointment.exceptions import ProfileIncompleteException
 from app.api.v1.appointment.reconcile_sync import sync_row
-from app.api.v1.appointment.slots import _calendar_event
+from app.api.v1.appointment.calendar_event import build_calendar_event
 from app.api.v1.appointment.types import AppointmentPayload
 
 
@@ -24,7 +24,7 @@ class CalendarTitleTests(unittest.TestCase):
 		supabase.rpc.return_value.execute.return_value = SimpleNamespace(data=[confirmed])
 		with (
 			patch("app.api.v1.appointment.booking.room_calendar_id", return_value="room"),
-			patch("app.api.v1.appointment.booking.create_calendar_event") as create,
+			patch("app.api.v1.appointment.booking_event.create_calendar_event") as create,
 		):
 			create_appointment(
 				AppointmentPayload(room_number=2, start_time=start), supabase, user, None, None, Response()
@@ -33,7 +33,7 @@ class CalendarTitleTests(unittest.TestCase):
 
 	def test_title_has_room_name_and_nim(self) -> None:
 		start = next_weekday_start(9)
-		event = _calendar_event("id", 1, start, start + timedelta(hours=1), "Santos Mahasiswa", 2510101051)
+		event = build_calendar_event("id", 1, start, start + timedelta(hours=1), "Santos Mahasiswa", 2510101051)
 		self.assertEqual(event["summary"], "Discussion Room 1-Santos Mahasiswa (2510101051)")
 
 	def test_booking_sends_the_title_to_google(self) -> None:
@@ -81,18 +81,18 @@ class CalendarTitleTests(unittest.TestCase):
 		):
 			self.assertEqual(sync_row(Mock(), row), "synchronized")
 		self.assertEqual(update.call_args.args[4]["summary"], "Discussion Room 1-Santos (123)")
-		self.assertEqual(_calendar_event("i", 2, start, start)["summary"], "Discussion Room 2")
+		self.assertEqual(build_calendar_event("i", 2, start, start)["summary"], "Discussion Room 2")
 
 
 class BookerNameTests(unittest.TestCase):
 	def test_name_is_one_short_clean_line(self) -> None:
-		from app.api.v1.appointment.slots import _booker_name
+		from app.api.v1.appointment.calendar_event import booker_name
 
 		base = student_user()
 		messy = base.model_copy(update={"name": "  Santos\n\tMahasiswa\x07 " + "x" * 100})
-		name = _booker_name(messy)
+		name = booker_name(messy)
 		self.assertEqual(name[:17], "Santos Mahasiswa ")
 		self.assertLessEqual(len(name), 60)
 		self.assertTrue(name.isprintable())
 		blank = base.model_copy(update={"name": "\n\x07"})
-		self.assertEqual(_booker_name(blank), base.email.partition("@")[0])
+		self.assertEqual(booker_name(blank), base.email.partition("@")[0])
