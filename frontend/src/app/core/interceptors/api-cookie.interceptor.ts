@@ -1,5 +1,6 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { readCookie } from '../utils/cookies';
 
 export const apiCookieInterceptor: HttpInterceptorFn = (request, next) => {
 	if (environment.apiUrl && (request.url === environment.apiUrl || request.url.startsWith(`${environment.apiUrl}/`))) {
@@ -13,11 +14,3 @@ export const apiCookieInterceptor: HttpInterceptorFn = (request, next) => {
 
 	return next(request);
 };
-
-function readCookie(name: string): string | null {
-	const prefix = `${name}=`;
-	const cookie = document.cookie
-		.split('; ')
-		.find((item) => item.startsWith(prefix));
-	return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : null;
-}

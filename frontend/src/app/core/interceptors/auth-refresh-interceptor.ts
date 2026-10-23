@@ -3,10 +3,11 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth-service';
+import { hasCookie } from '../utils/cookies';
 
 // The backend sets csrf_token with the same 30-day lifetime as the refresh cookie and clears them
 // together, so no csrf_token means nobody is signed in and a refresh could only fail.
-const hasSession = (): boolean => document.cookie.includes('csrf_token=');
+const hasSession = (): boolean => hasCookie('csrf_token');
 
 export const authRefreshInterceptor: HttpInterceptorFn = (req, next) => {
 	const authService = inject(AuthService);

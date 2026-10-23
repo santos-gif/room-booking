@@ -5,9 +5,20 @@
  */
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { catchError, finalize, Observable, of, shareReplay, tap, throwError } from 'rxjs';
+import {
+	catchError,
+	finalize,
+	Observable,
+	of,
+	shareReplay,
+	tap,
+	throwError,
+	timeout,
+} from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthenticatedUser, Major } from '../types/auth';
+
+const LOGOUT_TIMEOUT_MS = 8_000;
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -54,6 +65,8 @@ export class AuthService {
 
 	logout(): Observable<unknown> {
 		return this.http.post(`${environment.apiUrl}/auth/logout`, {}).pipe(
+			// A slow server must not leave the button hanging: the cookies are cleared server-side or not at all.
+			timeout(LOGOUT_TIMEOUT_MS),
 			catchError(() => of(null)),
 			tap(() => {
 				window.location.assign('/');

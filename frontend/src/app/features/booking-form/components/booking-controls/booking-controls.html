@@ -12,8 +12,10 @@
 				type="date"
 				[disabled]="disabled()"
 				[value]="date()"
+				[min]="minDate"
+				[max]="maxDate"
 				(click)="openPicker(picker)"
-				(change)="dateChange.emit(picker.value)"
+				(change)="pick(picker)"
 			/>
 		</div>
 	</div>

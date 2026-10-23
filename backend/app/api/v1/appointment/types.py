@@ -23,9 +23,12 @@ class AppointmentPayload(BaseModel):
 	@field_validator("start_time")
 	@classmethod
 	def ensure_jakarta_timezone(cls, value: datetime) -> datetime:
-		if value.tzinfo is None:
-			return value.replace(tzinfo=JAKARTA_TZ)
-		return value.astimezone(JAKARTA_TZ)
+		try:
+			if value.tzinfo is None:
+				return value.replace(tzinfo=JAKARTA_TZ)
+			return value.astimezone(JAKARTA_TZ)
+		except OverflowError as error:  # e.g. year 1 or 9999 with an offset: a clean 422, not a 500
+			raise ValueError("Choose a valid date and time.") from error
 
 
 class AvailableSlot(BaseModel):

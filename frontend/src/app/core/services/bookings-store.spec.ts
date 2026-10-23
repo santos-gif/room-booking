@@ -55,11 +55,22 @@ describe('BookingsStore (the list is cached, but never wrong after a change)', (
 	it('lets the My bookings poll ask again sooner than the default minute', () => {
 		store.refresh();
 		http.expectOne(isList).flush([booking('a')]);
-		vi.advanceTimersByTime(36_000);
+		vi.advanceTimersByTime(34_000);
 		store.refresh(); // default: still fresh, no request
-		store.refresh(35_000); // the poll: older than 35 s, so it asks
+		store.refresh(30_000); // the poll: older than 30 s, so it asks
 		http.expectOne(isList).flush([]);
 		expect(store.appointments()).toEqual([]);
+	});
+
+	it('lets the background poll rest for a minute after a failed load, but opening the page still retries', () => {
+		store.refresh();
+		http.expectOne(isList).flush('down', { status: 500, statusText: 'Server Error' });
+		vi.advanceTimersByTime(40_000);
+		store.refresh(30_000); // poll: the server just failed, leave it alone
+		vi.advanceTimersByTime(25_000);
+		store.refresh(30_000); // a minute has passed since the failure: poll again
+		http.expectOne(isList).flush([booking('a')]);
+		expect(store.appointments().length).toBe(1);
 	});
 
 	it('forgets the cache after a booking changed, and hides the stale list until the new one arrives', () => {

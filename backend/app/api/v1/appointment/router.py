@@ -1,10 +1,10 @@
-from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Cookie, Depends, Header, Query, Response, status
 from starlette.concurrency import run_in_threadpool
 
 from app.api.v1.appointment.booking import create_appointment, list_appointments
+from app.api.v1.appointment.booking_date import BookingDate
 from app.api.v1.appointment.cancel import cancel_appointment
 from app.api.v1.appointment.reconcile import reconcile_appointments, require_cron_secret
 from app.api.v1.appointment.reschedule import reschedule_appointment
@@ -39,7 +39,7 @@ async def get_appointments(
 @router.get("/availability", response_model=AvailabilityResponse)
 async def get_available_slots(
 	supabase: SupabaseClient,
-	booking_date: date = Query(alias="date"),
+	booking_date: BookingDate,
 	room_number: int = Query(ge=1, le=2),
 	exclude_appointment_id: UUID | None = Query(default=None),
 	current_user: AuthenticatedUser = Depends(get_current_user),

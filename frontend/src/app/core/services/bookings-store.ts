@@ -5,6 +5,8 @@ import { environment } from '../../../environments/environment';
 import { Appointment } from '../types/appointment';
 
 const FRESH_MS = 60_000;
+/** After a failed load, the background poll waits this long instead of hammering a struggling server. */
+const RETRY_AFTER_ERROR_MS = 60_000;
 
 /**
  * The student's upcoming bookings, cached for the whole session and shared by every page.
@@ -23,10 +25,15 @@ export class BookingsStore {
 	private fetchedAt = 0;
 	private version = 0;
 	private loading = false;
+	private failedAt = 0;
 
 	/** Asks the server unless the list is younger than `maxAgeMs` (a minute by default). */
 	refresh(maxAgeMs = FRESH_MS): void {
 		if (this.loading || Date.now() - this.fetchedAt < maxAgeMs) {
+			return;
+		}
+		// A poll (maxAge below the default) skips a server that just failed; opening the page still tries.
+		if (maxAgeMs < FRESH_MS && Date.now() - this.failedAt < RETRY_AFTER_ERROR_MS) {
 			return;
 		}
 		this.loading = true;
@@ -47,6 +54,7 @@ export class BookingsStore {
 			},
 			error: () => {
 				this.loading = false;
+				this.failedAt = Date.now();
 				// Keep a still-trustworthy cached list; but after a booking changed (fetchedAt reset) the
 				// old list is wrong, so show the error alone rather than a list that looks current.
 				if (this.fetchedAt === 0) {

@@ -1,5 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
+import { jakartaDate, jakartaToday } from '../../../../core/utils/jakarta-today';
 
 /** Date picker and room switch. Owns no state: the page passes values in and hears changes out. */
 @Component({
@@ -16,6 +17,15 @@ export class BookingControls {
 	readonly dateChange = output<string>();
 	readonly roomChange = output<1 | 2>();
 	protected readonly rooms = [1, 2] as const;
+	/** Same window as the server: today through 90 days ahead (Jakarta). */
+	protected readonly minDate = jakartaToday();
+	protected readonly maxDate = jakartaDate(new Date(Date.now() + 90 * 86_400_000));
+
+	protected pick(picker: HTMLInputElement): void {
+		if (picker.value) {
+			this.dateChange.emit(picker.value);
+		}
+	}
 
 	// Desktop Chrome only opens the calendar from its small icon; this makes the whole field open it.
 	protected openPicker(picker: HTMLInputElement): void {

@@ -11,8 +11,11 @@ import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm
 import { BookingCard } from '../components/booking-card/booking-card';
 import { EmptyState } from '../components/empty-state/empty-state';
 
-// Just over the backend's 30 s check cooldown, so every poll really asks Google Calendar.
+// A tick every 35 s, just over the backend's 30 s check cooldown, so every poll really asks Google.
 const POLL_MS = 35_000;
+// A list is "too old" after 30 s: the response of the previous poll lands a moment after its tick, so a
+// 35 s limit would see it as still fresh and skip every other tick (a 70 s period).
+const STALE_MS = 30_000;
 
 @Component({
 	imports: [AppHeader, BookingCard, EmptyState],
@@ -39,7 +42,7 @@ export class MyBookingsPage {
 		// While this tab is open, notice a booking whose Google event was deleted without a reload.
 		visibleTimer(POLL_MS)
 			.pipe(takeUntilDestroyed())
-			.subscribe(() => this.store.refresh(POLL_MS));
+			.subscribe(() => this.store.refresh(STALE_MS));
 	}
 
 	addAppointment(): void {

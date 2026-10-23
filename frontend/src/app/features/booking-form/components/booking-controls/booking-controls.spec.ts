@@ -62,4 +62,18 @@ describe('BookingControls (only Room 1 and Room 2 exist)', () => {
 		picker.dispatchEvent(new Event('change'));
 		expect(dates).toEqual(['2030-01-09']);
 	});
+
+	it('limits the picker to the booking window and ignores an emptied field', () => {
+		const { fixture, root } = render();
+		const picker = root.querySelector<HTMLInputElement>('#booking-date')!;
+		expect(picker.min).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+		const days = (Date.parse(picker.max) - Date.parse(picker.min)) / 86_400_000;
+		expect(days).toBeGreaterThanOrEqual(89);
+		expect(days).toBeLessThanOrEqual(91);
+		const dates: string[] = [];
+		fixture.componentInstance.dateChange.subscribe((date) => dates.push(date));
+		picker.value = '';
+		picker.dispatchEvent(new Event('change'));
+		expect(dates).toEqual([]);
+	});
 });

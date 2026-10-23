@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { catchError, map, of } from 'rxjs';
 import { AuthService } from '../services/auth-service';
+import { hasCookie } from '../utils/cookies';
 
 export const authenticatedGuard: CanActivateFn = (_route, state) => {
 	const auth = inject(AuthService);
@@ -22,7 +23,7 @@ export const authenticatedGuard: CanActivateFn = (_route, state) => {
 		catchError((error: { status?: number }) => {
 			const status = error?.status;
 			// A 401 while the csrf cookie still exists means a session existed but could not be renewed.
-			const expired = status === 401 && document.cookie.includes('csrf_token=');
+			const expired = status === 401 && hasCookie('csrf_token');
 			const target =
 				status === 401 || status === 404
 					? expired

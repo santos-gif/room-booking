@@ -85,8 +85,9 @@ class AuthSessionTests(unittest.IsolatedAsyncioTestCase):
 	async def test_logout_clears_all_auth_cookies(self) -> None:
 		from app.api.v1.auth.router import logout
 		response = Response()
-		with patch("app.api.v1.auth.router.create_supabase_client") as mock_client:
-			res = await logout(response, access_token="test-access-token")
+		with patch("app.api.v1.auth.router.revoke_session") as revoke:
+			res = await logout(response, access_token="test-access-token", refresh_token="test-refresh-token")
+		revoke.assert_called_once_with("test-access-token", "test-refresh-token")
 		self.assertEqual(res["message"], "Logged out successfully.")
 		cookies = response.headers.getlist("set-cookie")
 		self.assertTrue(any("access_token=" in c and 'Max-Age=0' in c for c in cookies))
