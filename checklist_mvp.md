@@ -7,7 +7,7 @@ Terakhir dijalankan: 2026-10-21.
 | Pemeriksaan | Hasil |
 |---|---|
 | Unit test backend (`pytest`, 19 file, 95 test) | PASSED 95/95 |
-| Unit test frontend (`ng test`, 25 file, 92 test) | PASSED 92/92 |
+| Unit test frontend (`ng test`, 25 file, 93 test) | PASSED 93/93 |
 | Build produksi (`ng build`) | OK, tanpa peringatan budget |
 | Pemeriksaan tampilan 390×844 dan 1440×900 (12 skenario, API di-mock) | PASSED 12/12 |
 | Migrasi Supabase `…0004`, `…0005` | Diterapkan, diverifikasi dengan query |
@@ -43,7 +43,7 @@ Terakhir dijalankan: 2026-10-21.
 - Aturan 5 menit (slot tidak bisa dipesan kurang dari 5 menit sebelum mulai) hanya dijaga di backend; database belum menolaknya. Judul event Calendar `Discussion Room {1/2}-{Nama} ({NIM})` berlaku untuk booking baru dan update; event yang dibuat ulang oleh rekonsiliasi memakai judul tanpa nama/NIM.
 - Tabel `users` belum punya constraint unik pada NIM, jadi NIM ganda belum ditolak database, dan mahasiswa masih bisa mengubah NIM-nya kapan saja (perlu migrasi, belum diterapkan; butuh persetujuan).
 - Hasil review keamanan yang butuh migrasi dan belum diterapkan: hak kolom `google_calendar_id`/`google_event_id` pada `appointments` tidak ada di migrasi (cocokkan dengan database langsung), kekuatan secret fungsi `anon` (minimal 32 karakter) belum dipaksa database, dan logout belum mencabut sesi jika cookie akses sudah kedaluwarsa.
-- Penghapusan event di Google Calendar baru terlihat di aplikasi saat pemilik membuka My bookings (dicek maksimal sekali per menit, ada jeda 30 detik per mahasiswa di server) atau saat cron harian jalan; slot yang dibebaskan tidak langsung terlihat oleh mahasiswa lain. Notifikasi push Google Calendar akan memperbaikinya dan belum dibuat.
+- Penghapusan event di Google Calendar terlihat di aplikasi dalam kira-kira 35 detik selama pemilik membuka halaman My bookings (halaman memeriksa ulang otomatis selama tab terlihat; ada jeda 30 detik per mahasiswa di server), atau saat halaman dibuka/dimuat ulang, atau saat cron harian jalan; slot yang dibebaskan tidak langsung terlihat oleh mahasiswa lain. Notifikasi push Google Calendar akan memperbaikinya dan belum dibuat.
 - Daftar bookings disimpan di cache sesi browser (valid 1 menit); cache dibuang setiap booking dibuat atau diubah.
 - Tombol Update (reschedule) sudah ada di antarmuka dan diuji dengan data tiruan, tetapi belum dijalankan ke Supabase/Calendar sungguhan.
 - Struktur backend baru (`backend/ARCHITECTURE.md`) hanya diverifikasi oleh unit test dan pengecekan rute; jalur rekonsiliasi (legacy, sync, replacement) belum punya unit test.

@@ -60,7 +60,7 @@ Login pertama meminta NIM dan jurusan (onboarding), setelah itu masuk ke "My boo
 cd backend
 .venv\Scripts\python.exe -m pytest -q
 
-# frontend (92 test, 25 file)
+# frontend (93 test, 25 file)
 cd frontend
 npx ng test --no-watch
 ```

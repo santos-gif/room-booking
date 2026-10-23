@@ -1,13 +1,18 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { AuthService } from '../../../core/services/auth-service';
 import { BookingsStore } from '../../../core/services/bookings-store';
 import { Appointment } from '../../../core/types/appointment';
+import { visibleTimer } from '../../../core/utils/visible-timer';
 import { AppHeader } from '../../../shared/components/app-header/app-header';
 import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { BookingCard } from '../components/booking-card/booking-card';
 import { EmptyState } from '../components/empty-state/empty-state';
+
+// Just over the backend's 30 s check cooldown, so every poll really asks Google Calendar.
+const POLL_MS = 35_000;
 
 @Component({
 	imports: [AppHeader, BookingCard, EmptyState],
@@ -31,6 +36,10 @@ export class MyBookingsPage {
 	constructor() {
 		// Shows the cached list at once; the store only calls the server when the cache is stale.
 		this.store.refresh();
+		// While this tab is open, notice a booking whose Google event was deleted without a reload.
+		visibleTimer(POLL_MS)
+			.pipe(takeUntilDestroyed())
+			.subscribe(() => this.store.refresh(POLL_MS));
 	}
 
 	addAppointment(): void {

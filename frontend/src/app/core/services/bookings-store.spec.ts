@@ -52,6 +52,16 @@ describe('BookingsStore (the list is cached, but never wrong after a change)', (
 		expect(store.appointments().length).toBe(2);
 	});
 
+	it('lets the My bookings poll ask again sooner than the default minute', () => {
+		store.refresh();
+		http.expectOne(isList).flush([booking('a')]);
+		vi.advanceTimersByTime(36_000);
+		store.refresh(); // default: still fresh, no request
+		store.refresh(35_000); // the poll: older than 35 s, so it asks
+		http.expectOne(isList).flush([]);
+		expect(store.appointments()).toEqual([]);
+	});
+
 	it('forgets the cache after a booking changed, and hides the stale list until the new one arrives', () => {
 		store.refresh();
 		http.expectOne(isList).flush([booking('a')]);

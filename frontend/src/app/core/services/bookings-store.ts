@@ -24,8 +24,9 @@ export class BookingsStore {
 	private version = 0;
 	private loading = false;
 
-	refresh(): void {
-		if (this.loading || Date.now() - this.fetchedAt < FRESH_MS) {
+	/** Asks the server unless the list is younger than `maxAgeMs` (a minute by default). */
+	refresh(maxAgeMs = FRESH_MS): void {
+		if (this.loading || Date.now() - this.fetchedAt < maxAgeMs) {
 			return;
 		}
 		this.loading = true;
