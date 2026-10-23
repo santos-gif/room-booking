@@ -1,21 +1,22 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../../../core/services/auth-service';
 import { Major } from '../../../core/types/auth';
 import { AppHeader } from '../../../shared/components/app-header/app-header';
 import { ProfileForm } from '../components/profile-form/profile-form';
+import { OnboardingService } from '../services/onboarding.service';
 
 type ProfileDraft = { nim: number | null; major: Major | '' };
 
 @Component({
+	providers: [OnboardingService],
 	imports: [ProfileForm, AppHeader],
 	selector: 'app-onboarding-page',
 	templateUrl: './onboarding-page.html',
 	styleUrl: './onboarding-page.css',
 })
 export class OnboardingPage {
-	private readonly auth = inject(AuthService);
+	private readonly onboarding = inject(OnboardingService);
 	private readonly router = inject(Router);
 	readonly nim = signal<number | null>(null);
 	readonly major = signal<Major | ''>('');
@@ -39,8 +40,8 @@ export class OnboardingPage {
 
 	constructor() {
 		if (this.editing) {
-			this.auth
-				.me()
+			this.onboarding
+				.loadProfile()
 				.pipe(takeUntilDestroyed())
 				.subscribe({
 					next: (user) => {
@@ -78,8 +79,7 @@ export class OnboardingPage {
 		}
 		this.submitting.set(true);
 		this.errorMessage.set('');
-		// AuthService keeps the cached user the route guards read, so the guards see the saved profile.
-		this.auth.saveOnboarding(details.nim, details.major).subscribe({
+		this.onboarding.saveOnboarding(details.nim, details.major).subscribe({
 			next: () => void this.router.navigate(['/my-bookings']),
 			error: () => {
 				this.errorMessage.set(
