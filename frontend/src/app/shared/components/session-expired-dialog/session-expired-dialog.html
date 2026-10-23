@@ -1,0 +1,14 @@
+<h2 mat-dialog-title>{{ reconnect ? 'Google Calendar disconnected' : 'Session expired' }}</h2>
+<mat-dialog-content>
+  @if (reconnect) {
+    Google no longer accepts the Calendar connection, so nothing you were doing was saved. Reconnect
+    your Google account to keep booking.
+  } @else {
+    Your session has ended, so nothing you were doing was saved. Please sign in again.
+  }
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button type="button" class="btn btn-primary" mat-dialog-close>
+    {{ reconnect ? 'Reconnect' : 'Redirect' }}
+  </button>
+</mat-dialog-actions>

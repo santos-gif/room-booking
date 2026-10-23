@@ -1,22 +1,24 @@
 <section class="card controls" aria-label="Date and room">
   <div class="field">
     <label for="booking-date">Date</label>
-    <!-- The native input sits invisibly on top (real picker, phone friendly); the text under it is what is seen. -->
+    <!-- Read-only: a typed weekend date would bypass the weekday filter, so dates are picked from the calendar. -->
     <div class="date-field">
-      <span class="input date-text">{{ date() | date: 'EEE, dd-MM-yyyy' }}</span>
       <input
-        #picker
         id="booking-date"
         name="booking-date"
-        class="date-native"
-        type="date"
+        class="input date-text"
+        readonly
         [disabled]="disabled()"
-        [value]="date()"
+        [matDatepicker]="calendar"
+        [matDatepickerFilter]="weekdaysOnly"
+        [value]="selected()"
         [min]="minDate"
         [max]="maxDate"
-        (click)="openPicker(picker)"
-        (change)="pick(picker)"
+        (click)="calendar.open()"
+        (dateChange)="pick($event)"
       />
+      <mat-datepicker-toggle [for]="calendar" [disabled]="disabled()" />
+      <mat-datepicker #calendar />
     </div>
   </div>
 

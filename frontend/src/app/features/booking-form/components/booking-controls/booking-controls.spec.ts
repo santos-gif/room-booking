@@ -1,5 +1,12 @@
-import { TestBed } from '@angular/core/testing';
-import { BookingControls } from './booking-controls';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { BookingControls, isWeekday } from './booking-controls';
+
+/** The component's protected members the tests reach into. */
+interface Picking {
+	pick(event: { value: Date | null }): void;
+	minDate: Date;
+	maxDate: Date;
+}
 
 function render(room: 1 | 2 = 1) {
 	const fixture = TestBed.createComponent(BookingControls);
@@ -47,33 +54,44 @@ describe('BookingControls (only Room 1 and Room 2 exist)', () => {
 
 	it('shows the date as day-month-year, whatever the browser locale', () => {
 		const { root } = render();
-		expect(root.querySelector('.date-text')?.textContent?.trim()).toBe(
-			'Tue, 08-01-2030',
+		expect(root.querySelector<HTMLInputElement>('#booking-date')?.value).toBe(
+			'Tue, 08/01/2030',
 		);
 	});
 
-	it('reports the picked date', () => {
-		const { fixture, root } = render();
+	// The picker's own event is what a click on a calendar day produces.
+	const pick = (fixture: ComponentFixture<BookingControls>, value: Date | null) =>
+		(fixture.componentInstance as unknown as Picking).pick({ value });
+
+	it('reports the picked weekday as yyyy-MM-dd', () => {
+		const { fixture } = render();
 		const dates: string[] = [];
 		fixture.componentInstance.dateChange.subscribe((date) => dates.push(date));
-		const picker = root.querySelector<HTMLInputElement>('#booking-date')!;
-		expect(picker.value).toBe('2030-01-08');
-		picker.value = '2030-01-09';
-		picker.dispatchEvent(new Event('change'));
+		pick(fixture, new Date(2030, 0, 9));
 		expect(dates).toEqual(['2030-01-09']);
 	});
 
-	it('limits the picker to the booking window and ignores an emptied field', () => {
-		const { fixture, root } = render();
-		const picker = root.querySelector<HTMLInputElement>('#booking-date')!;
-		expect(picker.min).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-		const days = (Date.parse(picker.max) - Date.parse(picker.min)) / 86_400_000;
-		expect(days).toBeGreaterThanOrEqual(89);
-		expect(days).toBeLessThanOrEqual(91);
+	it('ignores weekends and an emptied field', () => {
+		const { fixture } = render();
 		const dates: string[] = [];
 		fixture.componentInstance.dateChange.subscribe((date) => dates.push(date));
-		picker.value = '';
-		picker.dispatchEvent(new Event('change'));
+		pick(fixture, new Date(2030, 0, 12));
+		pick(fixture, new Date(2030, 0, 13));
+		pick(fixture, null);
 		expect(dates).toEqual([]);
+	});
+
+	it('only allows Monday to Friday', () => {
+		const days = [7, 8, 9, 10, 11, 12, 13].map((d) => isWeekday(new Date(2030, 0, d)));
+		expect(days).toEqual([true, true, true, true, true, false, false]);
+		expect(isWeekday(null)).toBe(false);
+	});
+
+	it('limits the picker to the booking window', () => {
+		const { fixture } = render();
+		const { minDate, maxDate } = fixture.componentInstance as unknown as Picking;
+		const days = (maxDate.getTime() - minDate.getTime()) / 86_400_000;
+		expect(days).toBeGreaterThanOrEqual(89);
+		expect(days).toBeLessThanOrEqual(91);
 	});
 });

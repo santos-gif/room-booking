@@ -1,7 +1,10 @@
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { AuthService } from '../services/auth-service';
 import { authRefreshInterceptor } from './auth-refresh-interceptor';
 
 const unauthorized = { status: 401, statusText: 'Unauthorized' };
@@ -9,14 +12,22 @@ const unauthorized = { status: 401, statusText: 'Unauthorized' };
 describe('authRefreshInterceptor', () => {
 	let client: HttpClient;
 	let http: HttpTestingController;
+	let closed: Subject<void>;
 	const router = { url: '/my-bookings', navigateByUrl: vi.fn() };
+	const dialog = { getDialogById: vi.fn(), open: vi.fn() };
 
 	beforeEach(() => {
+		closed = new Subject<void>();
+		router.url = '/my-bookings';
+		router.navigateByUrl.mockClear();
+		dialog.getDialogById.mockReset();
+		dialog.open.mockReset().mockImplementation(() => ({ afterClosed: () => closed }));
 		TestBed.configureTestingModule({
 			providers: [
 				provideHttpClient(withInterceptors([authRefreshInterceptor])),
 				provideHttpClientTesting(),
 				{ provide: Router, useValue: router },
+				{ provide: MatDialog, useValue: dialog },
 			],
 		});
 		client = TestBed.inject(HttpClient);
@@ -27,6 +38,12 @@ describe('authRefreshInterceptor', () => {
 		document.cookie = 'csrf_token=; max-age=0';
 		http.verify();
 	});
+
+	/** A request that comes back 401 with no way to renew (nobody signed in). */
+	const rejected = (url: string) => {
+		client.get(url).subscribe({ error: () => undefined });
+		http.expectOne(url).flush('no session', unauthorized);
+	};
 
 	it('refreshes the session and retries once when a signed-in request gets 401', () => {
 		document.cookie = 'csrf_token=abc';
@@ -44,7 +61,6 @@ describe('authRefreshInterceptor', () => {
 
 	it('keeps the retry own error: a 409 after a successful refresh is not an expired session', () => {
 		document.cookie = 'csrf_token=abc';
-		router.navigateByUrl.mockClear();
 		let status: number | undefined;
 		client.get('/api/bookings').subscribe({ error: (e) => (status = e.status) });
 
@@ -59,25 +75,63 @@ describe('authRefreshInterceptor', () => {
 		expect(router.navigateByUrl).not.toHaveBeenCalled();
 	});
 
-	it('does not try to refresh when nobody is signed in (no csrf_token cookie)', () => {
-		let status: number | undefined;
-		client.get('/api/auth/me').subscribe({ error: (e) => (status = e.status) });
-
-		http.expectOne('/api/auth/me').flush('no session', unauthorized);
-
-		expect(status).toBe(401);
-		http.expectNone((r) => r.url.endsWith('/auth/refresh'));
-	});
-
-	it('sends the student back to sign-in when the session cannot be renewed', () => {
+	it('tells the student the session ended, and sends them to sign-in only once they confirm', () => {
 		document.cookie = 'csrf_token=abc';
-		router.navigateByUrl.mockClear();
 		client.get('/api/bookings').subscribe({ error: () => undefined });
 
 		http.expectOne('/api/bookings').flush('expired', unauthorized);
 		http.expectOne((r) => r.url.endsWith('/auth/refresh')).flush('gone', unauthorized);
 
-		expect(router.navigateByUrl).toHaveBeenCalledWith('/?auth_error=session_expired');
+		expect(dialog.open).toHaveBeenCalledTimes(1);
+		expect(router.navigateByUrl).not.toHaveBeenCalled();
+		closed.next();
+		expect(router.navigateByUrl).toHaveBeenCalledWith('/');
+	});
+
+	it('shows the same notice, without a refresh, when the cookies are already gone (signed out in another tab)', () => {
+		let status: number | undefined;
+		client.get('/api/appointments').subscribe({ error: (e) => (status = e.status) });
+
+		http.expectOne('/api/appointments').flush('no session', unauthorized);
+
+		expect(status).toBe(401);
+		expect(dialog.open).toHaveBeenCalledTimes(1);
+		http.expectNone((r) => r.url.endsWith('/auth/refresh'));
+		closed.next();
+		expect(router.navigateByUrl).toHaveBeenCalledWith('/');
+	});
+
+	it('asks to reconnect Google, without a pointless session refresh, when Google rejects the Calendar token', () => {
+		document.cookie = 'csrf_token=abc';
+		const login = vi
+			.spyOn(TestBed.inject(AuthService), 'login')
+			.mockImplementation(() => undefined);
+		client.post('/api/appointments', {}).subscribe({ error: () => undefined });
+
+		http.expectOne('/api/appointments').flush('reconnect', {
+			...unauthorized,
+			headers: { 'X-Reconnect-Google': '1' },
+		});
+
+		expect(dialog.open.mock.calls[0][1].data).toEqual({ reconnect: true });
+		http.expectNone((r) => r.url.endsWith('/auth/refresh'));
+		expect(login).not.toHaveBeenCalled();
+		closed.next();
+		expect(login).toHaveBeenCalledTimes(1);
+		expect(router.navigateByUrl).not.toHaveBeenCalled();
+	});
+
+	it('opens only one notice while one is already showing', () => {
+		dialog.getDialogById.mockReturnValue({});
+		rejected('/api/appointments');
+		expect(dialog.open).not.toHaveBeenCalled();
+	});
+
+	it('stays quiet on the sign-in page and for the who-am-I check of a first visit', () => {
+		rejected('/api/auth/me');
+		router.url = '/?auth_error=session_expired';
+		rejected('/api/appointments');
+		expect(dialog.open).not.toHaveBeenCalled();
 	});
 
 	it('gives up after one retry instead of looping', () => {

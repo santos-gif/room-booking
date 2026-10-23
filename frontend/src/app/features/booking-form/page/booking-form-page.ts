@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth-service';
-import { jakartaToday } from '../../../shared/helpers/jakarta-today';
+import { nextBookableDay } from '../../../shared/helpers/jakarta-today';
 import { AppHeader } from '../../../shared/components/app-header/app-header';
 import { BookingControls } from '../components/booking-controls/booking-controls';
 import { ConfirmPanel } from '../components/confirm-panel/confirm-panel';
@@ -29,7 +29,7 @@ export class BookingFormPage {
 	private readonly rescheduleId =
 		inject(ActivatedRoute).snapshot.queryParamMap.get('reschedule');
 	readonly updating = this.rescheduleId !== null;
-	readonly bookingDate = signal(jakartaToday());
+	readonly bookingDate = signal(nextBookableDay());
 	readonly roomNumber = signal<1 | 2>(1);
 	private readonly reload = signal(0);
 	private readonly availability = loadAvailability(this.api, {

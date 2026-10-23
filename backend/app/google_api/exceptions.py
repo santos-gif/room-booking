@@ -17,11 +17,16 @@ class GoogleOAuthRequestException(HTTPException):
 		)
 
 
+# Tells the frontend this 401 means "the Google connection is unusable", not "the app session ended".
+RECONNECT_HEADER = "X-Reconnect-Google"
+
+
 class GoogleAuthorizationException(HTTPException):
 	def __init__(self, detail: str) -> None:
 		super().__init__(
 			status_code=status.HTTP_401_UNAUTHORIZED,
 			detail=detail,
+			headers={RECONNECT_HEADER: "1"},
 		)
 
 
@@ -31,6 +36,14 @@ class GoogleCredentialException(HTTPException):
 			status_code=status.HTTP_502_BAD_GATEWAY,
 			detail=detail,
 		)
+
+
+class GoogleUnavailableException(GoogleCredentialException):
+	"""Google did not answer the token refresh in time; the stored token is untouched."""
+
+	def __init__(self) -> None:
+		super().__init__("Google is not responding. Please try again in a moment.")
+		self.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
 
 class GoogleIdentityException(HTTPException):
@@ -46,6 +59,7 @@ class GoogleRefreshTokenException(HTTPException):
 		super().__init__(
 			status_code=status.HTTP_401_UNAUTHORIZED,
 			detail=detail,
+			headers={RECONNECT_HEADER: "1"},
 		)
 
 
