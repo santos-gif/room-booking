@@ -30,4 +30,10 @@ describe('describeBookingFailure (what the student reads after a failed booking)
 		);
 		expect(describeBookingFailure({}).message).toContain('Unable to complete');
 	});
+
+	it('tells the student to check My bookings after a timeout, since the save may have worked', () => {
+		const message = describeBookingFailure({ name: 'TimeoutError' }).message;
+		expect(message).toContain('My bookings');
+		expect(message).not.toContain('preserved');
+	});
 });

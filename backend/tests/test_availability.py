@@ -1,18 +1,17 @@
 import unittest
-from datetime import date, datetime
+from datetime import date
 from types import SimpleNamespace
 from unittest.mock import Mock
 
 from app.api.v1.appointment.slots import get_availability
-from app.api.v1.appointment.types import JAKARTA_TZ
 
-from support import student_user
+from support import next_weekday_start, student_user
 
 
 class AvailabilityTests(unittest.TestCase):
 	def test_availability_uses_aggregate_rpc_without_returning_other_bookings(self) -> None:
-		booking_date = date(2030, 1, 1)
-		booked_start = datetime(2030, 1, 1, 9, tzinfo=JAKARTA_TZ)
+		booked_start = next_weekday_start(9)  # inside the 90-day window, or slots are not offered at all
+		booking_date = booked_start.date()
 		supabase = Mock()
 		supabase.rpc.return_value.execute.return_value = SimpleNamespace(
 			data=[

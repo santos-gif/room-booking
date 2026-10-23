@@ -2,9 +2,13 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Major } from '../../../core/types/auth';
+import { ApiFailure, serverDetail } from '../../../core/utils/api-failure';
 import { AppHeader } from '../../../shared/components/app-header/app-header';
 import { ProfileForm } from '../components/profile-form/profile-form';
 import { OnboardingService } from '../service/onboarding.service';
+
+/** The server refuses a NIM with more than 13 digits (the same cap as the backend payload). */
+const MAX_NIM = 9_999_999_999_999;
 
 type ProfileDraft = { nim: number | null; major: Major | '' };
 
@@ -67,6 +71,7 @@ export class OnboardingPage {
 			typeof nim === 'number' &&
 			Number.isSafeInteger(nim) &&
 			nim > 0 &&
+			nim <= MAX_NIM &&
 			major !== '';
 		return valid ? { nim, major } : null;
 	}
@@ -81,9 +86,11 @@ export class OnboardingPage {
 		this.errorMessage.set('');
 		this.onboarding.saveOnboarding(details.nim, details.major).subscribe({
 			next: () => void this.router.navigate(['/my-bookings']),
-			error: () => {
+			error: (error: ApiFailure) => {
+				// 409: that NIM belongs to another student, and the server's own sentence says so.
+				const reason = error.status === 409 ? serverDetail(error) : null;
 				this.errorMessage.set(
-					'Unable to save your details. Please try again.',
+					reason ?? 'Unable to save your details. Please try again.',
 				);
 				this.submitting.set(false);
 			},

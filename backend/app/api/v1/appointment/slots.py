@@ -111,7 +111,7 @@ def get_availability(
 			available=(
 				booking_date.weekday() < 5
 				and slot not in booked_starts
-				and slot > now + LEAD
+				and now + LEAD < slot <= now + MAX_ADVANCE
 				and bookings_used < MAX_ACTIVE_BOOKINGS
 			),
 		)

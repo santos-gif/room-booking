@@ -10,13 +10,17 @@ ACTIVE_STATUSES = ("pending", "confirmed")
 
 
 def list_active(supabase: Client, user_id: str) -> object:
-	"""The user's upcoming pending/confirmed bookings, soonest first."""
+	"""The user's pending/confirmed bookings that have not ended yet, soonest first.
+
+	Ends after now, not starts after now: a booking in progress still counts toward the limit of
+	three (the database says so), so it must stay visible and cancellable.
+	"""
 	return (
 		supabase.table("appointments")
 		.select("*")
 		.eq("booker_id", user_id)
 		.in_("status", list(ACTIVE_STATUSES))
-		.gte("start_time", datetime.now(timezone.utc).isoformat())
+		.gt("end_time", datetime.now(timezone.utc).isoformat())
 		.order("start_time")
 		.execute()
 		.data

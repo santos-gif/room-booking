@@ -1,21 +1,23 @@
 .google {
-	align-items: center;
-	background: #fff;
-	border: 1.5px solid var(--line-strong);
-	border-radius: var(--radius-sm);
-	color: var(--ink);
-	cursor: pointer;
-	display: inline-flex;
-	font: 600 1rem/1 var(--font);
-	gap: 0.75rem;
-	justify-content: center;
-	min-height: 3rem;
-	padding: 0 1.25rem;
-	transition: background-color 0.15s, border-color 0.15s;
-	width: 100%;
+  align-items: center;
+  background: #fff;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: 600 1rem/1 var(--font);
+  gap: 0.75rem;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0 1.25rem;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+  width: 100%;
 }
 
 .google:hover {
-	background: var(--green-50);
-	border-color: var(--green-900);
+  background: var(--green-50);
+  border-color: var(--green-900);
 }

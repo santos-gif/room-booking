@@ -1,16 +1,16 @@
 .denied {
-	background: var(--bg);
-	display: grid;
-	min-height: 100vh;
-	padding: 1.5rem;
-	place-items: center;
+  background: var(--bg);
+  display: grid;
+  min-height: 100vh;
+  padding: 1.5rem;
+  place-items: center;
 }
 
 .card {
-	border-top-color: var(--danger);
-	display: grid;
-	gap: 1rem;
-	max-width: 26rem;
-	padding: 2rem 1.75rem;
-	width: 100%;
+  border-top-color: var(--danger);
+  display: grid;
+  gap: 1rem;
+  max-width: 26rem;
+  padding: 2rem 1.75rem;
+  width: 100%;
 }

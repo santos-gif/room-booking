@@ -1,33 +1,34 @@
 <form class="form" (ngSubmit)="submitted.emit()">
-	<div class="field">
-		<label for="nim">NIM</label>
-		<input
-			id="nim"
-			name="nim"
-			class="input"
-			type="number"
-			inputmode="numeric"
-			min="1"
-			step="1"
-			required
-			[(ngModel)]="nim"
-		/>
-	</div>
+  <div class="field">
+    <label for="nim">NIM</label>
+    <input
+      id="nim"
+      name="nim"
+      class="input"
+      type="number"
+      inputmode="numeric"
+      min="1"
+      max="9999999999999"
+      step="1"
+      required
+      [(ngModel)]="nim"
+    />
+  </div>
 
-	<div class="field">
-		<label for="major">Jurusan</label>
-		<select id="major" name="major" class="input" required [(ngModel)]="major">
-			<option value="" disabled>Select your major</option>
-			@for (item of majors; track item) {
-				<option [value]="item">{{ item }}</option>
-			}
-		</select>
-	</div>
+  <div class="field">
+    <label for="major">Jurusan</label>
+    <select id="major" name="major" class="input" required [(ngModel)]="major">
+      <option value="" disabled>Select your major</option>
+      @for (item of majors; track item) {
+        <option [value]="item">{{ item }}</option>
+      }
+    </select>
+  </div>
 
-	@if (errorMessage()) {
-		<p class="alert" role="alert">{{ errorMessage() }}</p>
-	}
-	<button type="submit" class="btn btn-primary" [disabled]="submitting() || !canSubmit()">
-		{{ submitting() ? 'Saving…' : editing() ? 'Save changes' : 'Continue' }}
-	</button>
+  @if (errorMessage()) {
+    <p class="alert" role="alert">{{ errorMessage() }}</p>
+  }
+  <button type="submit" class="btn btn-primary" [disabled]="submitting() || !canSubmit()">
+    {{ submitting() ? 'Saving…' : editing() ? 'Save changes' : 'Continue' }}
+  </button>
 </form>

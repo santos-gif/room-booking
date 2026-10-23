@@ -56,11 +56,11 @@ Login pertama meminta NIM dan jurusan (onboarding), setelah itu masuk ke "My boo
 ## 5. Menjalankan unit test
 
 ```bash
-# backend (105 test)
+# backend (107 test)
 cd backend
 .venv\Scripts\python.exe -m pytest -q
 
-# frontend (105 test, 29 file)
+# frontend (109 test, 29 file)
 cd frontend
 npx ng test --no-watch
 ```

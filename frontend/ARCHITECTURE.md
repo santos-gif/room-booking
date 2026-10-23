@@ -6,8 +6,8 @@ Angular 22, standalone components, signals. Everything lives in `src/app`.
 
 | Folder | What goes here | Rule |
 |--------|----------------|------|
-| `core/` | The essential code for talking to the server, and the security around it: route guards, HTTP interceptors, the global error handler, app-wide services (such as the navigation lock), the types of server data, and `utils/`. Pipes will live here too (none yet). | Features may use `core/`. `core/` never imports from a feature. |
-| `shared/` | Utilities that span features, mainly: reusable components (header, dialogs), helpers, and directives (none yet). | No server calls. |
+| `core/` | The essential code for talking to the server, and the security around it: route guards, HTTP interceptors, the global error handler, app-wide services (such as the navigation lock), the types of server data, and `utils/`. Pipes will live here too (none yet). | Features may use `core/`. `core/` may use `shared/`. `core/` never imports from a feature. |
+| `shared/` | Utilities that span features, mainly: reusable components (header, dialogs), helpers, and directives (none yet). The broader layer. | No server calls. Never imports from a feature. |
 | `features/<name>/` | One folder per feature. A feature is centred on one page. | A feature never imports from another feature. |
 
 `core/` and `shared/` both span every feature. The difference is importance: `core/` is what the app
@@ -65,15 +65,15 @@ written once, not in every page.
   Today `shared/helpers/` holds `jakarta-today.ts` (dates in Jakarta time), `visible-timer.ts`
   (a timer that pauses in hidden tabs) and `dialog-width.ts`.
 
-## Open question for the owner
+## `core` may use `shared`
 
-`core` already imports one piece of `shared`: the error handler and the server-error interceptor
-open `shared/components/error-dialog` (and use `shared/helpers/dialog-width`), because core is what
-notices a failed request. Is that direction (core uses shared UI) acceptable, or should the dialog
-move into core?
+`shared` is the broader layer, so `core` is allowed to use its components: the global error handler
+and the server-error interceptor open `shared/components/error-dialog` and use
+`shared/helpers/dialog-width`. The one rule that never bends is that nothing in `core` or `shared`
+imports from a feature.
 
 ## Changing the structure
 
 Moving, merging, renaming or deleting files that carry this pattern is decided by the owner. The
-project skill `structure-guard` makes the assistant propose first (what, where, why, an alternative)
+user-level skill `code-structure-guard` (in `~/.claude/skills`, so it works in every project) makes the assistant propose first (what, where, why, an alternative)
 and wait for a yes.

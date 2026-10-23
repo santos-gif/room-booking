@@ -5,7 +5,7 @@ import { Observable, throwError } from 'rxjs';
 import { serverErrorInterceptor } from './server-error-interceptor';
 
 describe('serverErrorInterceptor (at most one dialog, never for the availability poll)', () => {
-	function call(url: string, status: number, openDialogs: unknown[] = []) {
+	function call(url: string, status: number, openDialogs: unknown[] = [], method = 'GET') {
 		const dialog = { openDialogs, open: vi.fn() };
 		TestBed.configureTestingModule({
 			providers: [{ provide: MatDialog, useValue: dialog }],
@@ -15,7 +15,7 @@ describe('serverErrorInterceptor (at most one dialog, never for the availability
 				HttpResponse<unknown>
 			>;
 		TestBed.runInInjectionContext(() =>
-			serverErrorInterceptor(new HttpRequest('GET', url), next),
+			serverErrorInterceptor(new HttpRequest(method as 'GET', url), next),
 		).subscribe({ error: () => undefined });
 		return dialog;
 	}
@@ -32,6 +32,14 @@ describe('serverErrorInterceptor (at most one dialog, never for the availability
 
 	it('stays quiet for the availability poll (the page shows its own message)', () => {
 		expect(call('/api/v1/appointments/availability', 503).open).not.toHaveBeenCalled();
+	});
+
+	it('stays quiet when saving or cancelling a booking: the page shows its own message', () => {
+		expect(call('/api/v1/appointments/', 502, [], 'POST').open).not.toHaveBeenCalled();
+		TestBed.resetTestingModule();
+		expect(
+			call('/api/v1/appointments/b1', 500, [], 'DELETE').open,
+		).not.toHaveBeenCalled();
 	});
 
 	it('does not open a dialog for ordinary client errors', () => {

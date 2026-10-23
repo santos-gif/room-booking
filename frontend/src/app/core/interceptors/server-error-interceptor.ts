@@ -11,8 +11,13 @@ export const serverErrorInterceptor: HttpInterceptorFn = (req, next) => {
 	return next(req).pipe(
 		catchError((error: HttpErrorResponse) => {
 			// One dialog at a time, and none for the availability poll (the page shows its own message).
+			// Saving or cancelling a booking shows its own message on the page: a second dialog would stack.
+			const savingBooking =
+				req.method !== 'GET' && req.url.includes('/appointments');
 			const quiet =
-				req.url.includes('/availability') || dialog.openDialogs.length > 0;
+				req.url.includes('/availability') ||
+				savingBooking ||
+				dialog.openDialogs.length > 0;
 			if ((error.status === 0 || error.status >= 500) && !quiet) {
 				const message =
 					error.status === 0

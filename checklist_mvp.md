@@ -6,8 +6,8 @@ Terakhir dijalankan: 2026-10-21.
 
 | Pemeriksaan | Hasil |
 |---|---|
-| Unit test backend (`pytest`, 21 file, 105 test) | PASSED 105/105 |
-| Unit test frontend (`ng test`, 29 file, 105 test) | PASSED 105/105 |
+| Unit test backend (`pytest`, 22 file, 107 test) | PASSED 107/107 |
+| Unit test frontend (`ng test`, 29 file, 109 test) | PASSED 109/109 |
 | Build produksi (`ng build`) | OK, tanpa peringatan budget |
 | Pemeriksaan tampilan 390×844 dan 1440×900 (12 skenario, API di-mock) | PASSED 12/12 |
 | Migrasi Supabase `…0004`, `…0005` | Diterapkan, diverifikasi dengan query |

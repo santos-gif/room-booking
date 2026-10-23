@@ -1,24 +1,24 @@
 @if (editing) {
-	<app-header />
+  <app-header />
 }
 <main class="page page-narrow" [class.first-time]="!editing">
-	<section class="card" aria-labelledby="profile-title">
-		<h1 id="profile-title">{{ editing ? 'Your profile' : 'Complete your profile' }}</h1>
-		<p class="lead">
-			{{
-				editing
-					? 'Update your NIM or major when it changes.'
-					: 'We need your NIM and major before you can book a room.'
-			}}
-		</p>
-		<app-profile-form
-			[(nim)]="nim"
-			[(major)]="major"
-			[editing]="editing"
-			[canSubmit]="canSave()"
-			[submitting]="submitting()"
-			[errorMessage]="errorMessage()"
-			(submitted)="submit()"
-		/>
-	</section>
+  <section class="card" aria-labelledby="profile-title">
+    <h1 id="profile-title">{{ editing ? 'Your profile' : 'Complete your profile' }}</h1>
+    <p class="lead">
+      {{
+        editing
+          ? 'Update your NIM or major when it changes.'
+          : 'We need your NIM and major before you can book a room.'
+      }}
+    </p>
+    <app-profile-form
+      [(nim)]="nim"
+      [(major)]="major"
+      [editing]="editing"
+      [canSubmit]="canSave()"
+      [submitting]="submitting()"
+      [errorMessage]="errorMessage()"
+      (submitted)="submit()"
+    />
+  </section>
 </main>
