@@ -36,14 +36,26 @@ export class BookingFormService {
 
 	// Both may change the student's list (even when the answer is lost: the server may have saved it).
 	book(payload: BookingPayload): Observable<BookingAppointment> {
-		return this.http
-			.post<BookingAppointment>(`${this.baseUrl}/`, payload)
-			.pipe(timeout(SAVE_TIMEOUT_MS), finalize(() => this.bookings.invalidate()));
+		return this.http.post<BookingAppointment>(`${this.baseUrl}/`, payload).pipe(
+			timeout(SAVE_TIMEOUT_MS),
+			finalize(() => this.bookings.invalidate()),
+		);
 	}
 
 	reschedule(id: string, payload: BookingPayload): Observable<BookingAppointment> {
 		return this.http
-			.post<BookingAppointment>(`${this.baseUrl}/${encodeURIComponent(id)}/reschedule`, payload)
-			.pipe(timeout(SAVE_TIMEOUT_MS), finalize(() => this.bookings.invalidate()));
+			.post<BookingAppointment>(
+				`${this.baseUrl}/${encodeURIComponent(id)}/reschedule`,
+				payload,
+			)
+			.pipe(
+				timeout(SAVE_TIMEOUT_MS),
+				finalize(() => this.bookings.invalidate()),
+			);
+	}
+
+	/** The shared bookings list is out of date (for example the booking being updated is gone). */
+	invalidateBookings(): void {
+		this.bookings.invalidate();
 	}
 }

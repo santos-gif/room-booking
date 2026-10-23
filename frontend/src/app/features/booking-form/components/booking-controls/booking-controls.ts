@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
-import { jakartaDate, jakartaToday } from '../../../../core/utils/jakarta-today';
+import { jakartaDate, jakartaToday } from '../../../../shared/helpers/jakarta-today';
 
 const DAY_MS = 86_400_000;
 /** Same limit as the server (slots.MAX_ADVANCE). */

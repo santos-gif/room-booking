@@ -20,9 +20,9 @@ describe('ResultDialog (usable without a mouse)', () => {
 		const { fixture, root } = render();
 		let closed = 0;
 		fixture.componentInstance.closed.subscribe(() => closed++);
-		root
-			.querySelector('[role=dialog]')!
-			.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		root.querySelector('[role=dialog]')!.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+		);
 		root.querySelector<HTMLButtonElement>('.btn-primary')!.click();
 		expect(closed).toBe(2);
 	});

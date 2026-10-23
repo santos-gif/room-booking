@@ -1,4 +1,3 @@
-
 export const MAJORS = [
 	'Information Technology',
 	'Management',

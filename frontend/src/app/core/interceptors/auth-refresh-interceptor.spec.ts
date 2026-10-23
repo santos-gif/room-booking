@@ -50,7 +50,10 @@ describe('authRefreshInterceptor', () => {
 
 		http.expectOne('/api/bookings').flush('expired', unauthorized);
 		http.expectOne((r) => r.url.endsWith('/auth/refresh')).flush({});
-		http.expectOne('/api/bookings').flush('taken', { status: 409, statusText: 'Conflict' });
+		http.expectOne('/api/bookings').flush('taken', {
+			status: 409,
+			statusText: 'Conflict',
+		});
 
 		expect(status).toBe(409);
 		expect(router.navigateByUrl).not.toHaveBeenCalled();

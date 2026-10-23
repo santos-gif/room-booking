@@ -1,7 +1,7 @@
 import { ErrorHandler, inject, Injectable, Injector, NgZone } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { ErrorDialog } from '../../shared/components/error-dialog/error-dialog';
-import { DIALOG_WIDTH } from '../../shared/components/dialog-width';
+import { DIALOG_WIDTH } from '../../shared/helpers/dialog-width';
 
 /** A reload is attempted at most this often, so a page that keeps failing cannot loop. */
 const RELOAD_COOLDOWN_MS = 30_000;

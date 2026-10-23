@@ -1,29 +1,29 @@
 <section class="card" aria-labelledby="times-title">
-	<h2 id="times-title">Times <small>WIB</small></h2>
-	@if (loading()) {
-		<!-- No slots at all while loading: a stale list from another room or day must never show. -->
-		<div class="loading" role="status">
-			<span class="spinner spinner-sm"></span>
-			<span>Loading availability…</span>
-		</div>
-	} @else {
-		<div class="slots" role="group" aria-label="One-hour times">
-			@for (slot of slots(); track slot.start_time) {
-				<button
-					type="button"
-					class="slot"
-					[class.selected]="selected()?.start_time === slot.start_time"
-					[class.current]="isCurrent(slot)"
-					[attr.aria-pressed]="selected()?.start_time === slot.start_time"
-					[disabled]="!slot.available || disabled() || isCurrent(slot)"
-					(click)="pick.emit(slot)"
-				>
-					<span class="t">{{ slot.start_time | date: 'hh:mm a' : 'Asia/Jakarta' }}</span>
-					<span class="s">
-						{{ isCurrent(slot) ? 'Your booking' : slot.available ? 'Free' : 'Unavailable' }}
-					</span>
-				</button>
-			}
-		</div>
-	}
+  <h2 id="times-title">Times <small>WIB</small></h2>
+  @if (loading()) {
+    <!-- No slots at all while loading: a stale list from another room or day must never show. -->
+    <div class="loading" role="status">
+      <span class="spinner spinner-sm"></span>
+      <span>Loading availability…</span>
+    </div>
+  } @else {
+    <div class="slots" role="group" aria-label="One-hour times">
+      @for (slot of slots(); track slot.start_time) {
+        <button
+          type="button"
+          class="slot"
+          [class.selected]="selected()?.start_time === slot.start_time"
+          [class.current]="isCurrent(slot)"
+          [attr.aria-pressed]="selected()?.start_time === slot.start_time"
+          [disabled]="!slot.available || disabled() || isCurrent(slot)"
+          (click)="pick.emit(slot)"
+        >
+          <span class="t">{{ slot.start_time | date: 'hh:mm a' : 'Asia/Jakarta' }}</span>
+          <span class="s">
+            {{ isCurrent(slot) ? 'Your booking' : slot.available ? 'Free' : 'Unavailable' }}
+          </span>
+        </button>
+      }
+    </div>
+  }
 </section>

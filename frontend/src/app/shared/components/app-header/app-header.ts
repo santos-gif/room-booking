@@ -4,7 +4,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth-service';
 import { NavigationLock } from '../../../core/services/navigation-lock';
 import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
-import { DIALOG_WIDTH } from '../dialog-width';
+import { DIALOG_WIDTH } from '../../helpers/dialog-width';
 
 @Component({
 	imports: [RouterLink, RouterLinkActive],

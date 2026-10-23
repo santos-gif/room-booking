@@ -1,12 +1,17 @@
 <header class="bar">
-	<div class="bar-inner">
-		<a class="brand" routerLink="/my-bookings" aria-label="Room Booking, go to my bookings" [class.locked]="lock()">
-			Room Booking
-		</a>
-		<nav aria-label="Main" [class.locked]="lock()">
-			<a routerLink="/my-bookings" routerLinkActive="active">My bookings</a>
-			<a routerLink="/profile" routerLinkActive="active">Profile</a>
-		</nav>
-		<button type="button" class="signout" [disabled]="lock()" (click)="logout()">Sign out</button>
-	</div>
+  <div class="bar-inner">
+    <a
+      class="brand"
+      routerLink="/my-bookings"
+      aria-label="Room Booking, go to my bookings"
+      [class.locked]="lock()"
+    >
+      Room Booking
+    </a>
+    <nav aria-label="Main" [class.locked]="lock()">
+      <a routerLink="/my-bookings" routerLinkActive="active">My bookings</a>
+      <a routerLink="/profile" routerLinkActive="active">Profile</a>
+    </nav>
+    <button type="button" class="signout" [disabled]="lock()" (click)="logout()">Sign out</button>
+  </div>
 </header>

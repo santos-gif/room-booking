@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { BookingAppointment } from '../types/booking-form';
-import { BookingFormService } from './booking-form.service';
+import { BookingFormService } from '../service/booking-form.service';
 import { loadUpdateTarget } from './update-target';
 
 const booking = (id: string, room: 1 | 2 = 2): BookingAppointment => ({

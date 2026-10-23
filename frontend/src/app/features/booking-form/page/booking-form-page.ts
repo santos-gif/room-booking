@@ -1,17 +1,17 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth-service';
-import { jakartaToday } from '../../../core/utils/jakarta-today';
+import { jakartaToday } from '../../../shared/helpers/jakarta-today';
 import { AppHeader } from '../../../shared/components/app-header/app-header';
 import { BookingControls } from '../components/booking-controls/booking-controls';
 import { ConfirmPanel } from '../components/confirm-panel/confirm-panel';
 import { ResultDialog } from '../components/result-dialog/result-dialog';
 import { SlotGrid } from '../components/slot-grid/slot-grid';
-import { loadAvailability } from '../services/availability-loader';
-import { describeBookingFailure, NOT_FOUND } from '../services/booking-errors';
-import { BookingFormService } from '../services/booking-form.service';
-import { guardBookingPage } from '../services/page-lifecycle';
-import { loadUpdateTarget } from '../services/update-target';
+import { loadAvailability } from '../helpers/availability-loader';
+import { describeBookingFailure, NOT_FOUND } from '../helpers/booking-errors';
+import { BookingFormService } from '../service/booking-form.service';
+import { guardBookingPage } from '../helpers/page-lifecycle';
+import { loadUpdateTarget } from '../helpers/update-target';
 import { AvailableSlot, BookingPayload } from '../types/booking-form';
 
 @Component({

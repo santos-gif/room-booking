@@ -1,8 +1,8 @@
 import { computed, effect, Signal, signal } from '@angular/core';
 import { catchError, EMPTY, switchMap } from 'rxjs';
-import { visibleTimer } from '../../../core/utils/visible-timer';
+import { visibleTimer } from '../../../shared/helpers/visible-timer';
 import { AvailableSlot } from '../types/booking-form';
-import { BookingFormService } from './booking-form.service';
+import { BookingFormService } from '../service/booking-form.service';
 
 interface AvailabilityQuery {
 	date: Signal<string>;

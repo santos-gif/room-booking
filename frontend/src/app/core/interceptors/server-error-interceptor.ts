@@ -3,7 +3,7 @@ import { inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { catchError, throwError } from 'rxjs';
 import { ErrorDialog } from '../../shared/components/error-dialog/error-dialog';
-import { DIALOG_WIDTH } from '../../shared/components/dialog-width';
+import { DIALOG_WIDTH } from '../../shared/helpers/dialog-width';
 
 export const serverErrorInterceptor: HttpInterceptorFn = (req, next) => {
 	const dialog = inject(MatDialog);

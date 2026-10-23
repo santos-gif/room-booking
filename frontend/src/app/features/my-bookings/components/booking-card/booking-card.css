@@ -1,52 +1,52 @@
 /* A row inside the page's list container: tinted so it stands out from the white panel. */
 .booking-card {
-	align-items: center;
-	background: var(--green-50);
-	border: 1px solid var(--line);
-	border-left: 6px solid var(--orange-500);
-	border-radius: var(--radius);
-	display: grid;
-	gap: 0.75rem 1.5rem;
-	grid-template-columns: minmax(9rem, 1fr) auto auto;
-	padding: 1rem 1.25rem;
+  align-items: center;
+  background: var(--green-50);
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--orange-500);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.75rem 1.5rem;
+  grid-template-columns: minmax(9rem, 1fr) auto auto;
+  padding: 1rem 1.25rem;
 }
 
 .when {
-	display: grid;
+  display: grid;
 }
 
 .date {
-	color: var(--ink-soft);
-	font-size: 0.9rem;
-	font-weight: 600;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .time {
-	color: var(--green-900);
-	font-size: 1.35rem;
-	font-weight: 700;
-	letter-spacing: -0.01em;
+  color: var(--green-900);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .time small {
-	color: var(--ink-soft);
-	font-size: 0.75rem;
-	font-weight: 600;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .meta,
 .actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 @media (width <= 640px) {
-	.booking-card {
-		grid-template-columns: 1fr;
-	}
+  .booking-card {
+    grid-template-columns: 1fr;
+  }
 
-	.actions .btn {
-		flex: 1;
-	}
+  .actions .btn {
+    flex: 1;
+  }
 }

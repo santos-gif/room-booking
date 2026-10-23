@@ -1,23 +1,23 @@
 .modal-backdrop {
-	align-items: center;
-	background: rgb(0 0 0 / 50%);
-	display: flex;
-	inset: 0;
-	justify-content: center;
-	padding: 1rem;
-	position: fixed;
-	z-index: 30;
+  align-items: center;
+  background: rgb(0 0 0 / 50%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 30;
 }
 
 .modal {
-	display: grid;
-	gap: 1.1rem;
-	max-width: 28rem;
-	width: 100%;
+  display: grid;
+  gap: 1.1rem;
+  max-width: 28rem;
+  width: 100%;
 }
 
 .actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
 }

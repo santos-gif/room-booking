@@ -3,14 +3,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { AuthService } from '../../../core/services/auth-service';
-import { BookingsStore } from '../../../core/services/bookings-store';
 import { Appointment } from '../../../core/types/appointment';
-import { visibleTimer } from '../../../core/utils/visible-timer';
+import { visibleTimer } from '../../../shared/helpers/visible-timer';
 import { AppHeader } from '../../../shared/components/app-header/app-header';
 import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { BookingCard } from '../components/booking-card/booking-card';
 import { EmptyState } from '../components/empty-state/empty-state';
-import { DIALOG_WIDTH } from '../../../shared/components/dialog-width';
+import { MyBookingsService } from '../service/my-bookings.service';
+import { DIALOG_WIDTH } from '../../../shared/helpers/dialog-width';
 import { ApiFailure, serverDetail } from '../../../core/utils/api-failure';
 
 const CANCEL_FAILED = 'Unable to cancel this appointment. It has not been removed.';
@@ -21,31 +21,32 @@ const POLL_MS = 35_000;
 const STALE_MS = 30_000;
 
 @Component({
+	providers: [MyBookingsService],
 	imports: [AppHeader, BookingCard, EmptyState],
 	selector: 'app-my-bookings-page',
 	templateUrl: './my-bookings-page.html',
 	styleUrl: './my-bookings-page.css',
 })
 export class MyBookingsPage {
-	private readonly store = inject(BookingsStore);
+	private readonly bookings = inject(MyBookingsService);
 	private readonly auth = inject(AuthService);
 	private readonly router = inject(Router);
 	private readonly dialog = inject(MatDialog);
 	private readonly cancelError = signal('');
-	readonly errorMessage = computed(() => this.cancelError() || this.store.error());
+	readonly errorMessage = computed(() => this.cancelError() || this.bookings.error());
 	readonly calendarReconnectNeeded = signal(false);
 	readonly busyId = signal('');
 	// False until the first answer: the list panel shows placeholders, not the empty message.
-	readonly loaded = this.store.loaded;
-	readonly appointments = this.store.appointments;
+	readonly loaded = this.bookings.loaded;
+	readonly appointments = this.bookings.appointments;
 
 	constructor() {
 		// Shows the cached list at once; the store only calls the server when the cache is stale.
-		this.store.refresh();
+		this.bookings.refresh();
 		// While this tab is open, notice a booking whose Google event was deleted without a reload.
 		visibleTimer(POLL_MS)
 			.pipe(takeUntilDestroyed())
-			.subscribe(() => this.store.refresh(STALE_MS));
+			.subscribe(() => this.bookings.refresh(STALE_MS));
 	}
 
 	addAppointment(): void {
@@ -81,7 +82,7 @@ export class MyBookingsPage {
 		this.busyId.set(appointment.id);
 		this.cancelError.set('');
 		this.calendarReconnectNeeded.set(false);
-		this.store.cancel(appointment.id).subscribe({
+		this.bookings.cancel(appointment.id).subscribe({
 			next: () => this.busyId.set(''),
 			error: (error: ApiFailure) => {
 				const reconnect = error.status === 401;

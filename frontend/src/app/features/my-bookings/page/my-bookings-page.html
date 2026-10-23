@@ -1,48 +1,46 @@
 <app-header />
 <main class="page">
-	<div class="head">
-		<div>
-			<h1>My Bookings</h1>
-			<p class="lead">Your upcoming one-hour slots. You can hold up to 3 at a time.</p>
-		</div>
-		<button type="button" class="btn btn-accent" (click)="addAppointment()">
-			+ Book a room
-		</button>
-	</div>
+  <div class="head">
+    <div>
+      <h1>My Bookings</h1>
+      <p class="lead">Your upcoming one-hour slots. You can hold up to 3 at a time.</p>
+    </div>
+    <button type="button" class="btn btn-accent" (click)="addAppointment()">+ Book a room</button>
+  </div>
 
-	@if (errorMessage()) {
-		<p class="alert" role="alert">{{ errorMessage() }}</p>
-	}
-	@if (calendarReconnectNeeded()) {
-		<button type="button" class="btn" (click)="reconnectCalendar()">
-			Reconnect Google Calendar
-		</button>
-	}
+  @if (errorMessage()) {
+    <p class="alert" role="alert">{{ errorMessage() }}</p>
+  }
+  @if (calendarReconnectNeeded()) {
+    <button type="button" class="btn" (click)="reconnectCalendar()">
+      Reconnect Google Calendar
+    </button>
+  }
 
-	<!-- The panel is always there; only what is inside it changes as the data arrives. -->
-	<section class="card panel" aria-label="Upcoming bookings" [attr.aria-busy]="!loaded()">
-		@if (!loaded()) {
-			<ul class="list" aria-label="Loading your bookings">
-				<li class="skeleton"></li>
-				<li class="skeleton"></li>
-			</ul>
-		} @else if (appointments().length > 0) {
-			<ul class="list">
-				@for (appointment of appointments(); track appointment.id) {
-					<li>
-						<app-booking-card
-							[appointment]="appointment"
-							[busy]="busyId() === appointment.id"
-							(updateRequested)="update(appointment)"
-							(cancelRequested)="askToCancel(appointment)"
-						/>
-					</li>
-				}
-			</ul>
-		} @else if (errorMessage()) {
-			<p class="lead">Your bookings could not be loaded. Reload the page to try again.</p>
-		} @else {
-			<app-empty-state />
-		}
-	</section>
+  <!-- The panel is always there; only what is inside it changes as the data arrives. -->
+  <section class="card panel" aria-label="Upcoming bookings" [attr.aria-busy]="!loaded()">
+    @if (!loaded()) {
+      <ul class="list" aria-label="Loading your bookings">
+        <li class="skeleton"></li>
+        <li class="skeleton"></li>
+      </ul>
+    } @else if (appointments().length > 0) {
+      <ul class="list">
+        @for (appointment of appointments(); track appointment.id) {
+          <li>
+            <app-booking-card
+              [appointment]="appointment"
+              [busy]="busyId() === appointment.id"
+              (updateRequested)="update(appointment)"
+              (cancelRequested)="askToCancel(appointment)"
+            />
+          </li>
+        }
+      </ul>
+    } @else if (errorMessage()) {
+      <p class="lead">Your bookings could not be loaded. Reload the page to try again.</p>
+    } @else {
+      <app-empty-state />
+    }
+  </section>
 </main>

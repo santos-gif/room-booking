@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { Availability, AvailableSlot } from '../types/booking-form';
 import { loadAvailability } from './availability-loader';
-import { BookingFormService } from './booking-form.service';
+import { BookingFormService } from '../service/booking-form.service';
 
 const slot = (hour: string): AvailableSlot => ({
 	start_time: `2030-01-08T${hour}:00:00+07:00`,

@@ -1,64 +1,64 @@
 .drawer {
-	align-content: start;
-	animation: slide-in 0.2s ease-out;
-	background: var(--surface);
-	border-left: 4px solid var(--orange-500);
-	bottom: 0;
-	box-shadow: -8px 0 32px rgb(0 0 0 / 14%);
-	display: grid;
-	gap: 1.1rem;
-	max-width: 26rem;
-	padding: 1.5rem;
-	position: fixed;
-	right: 0;
-	top: 0;
-	width: 92vw;
-	z-index: 20;
+  align-content: start;
+  animation: slide-in 0.2s ease-out;
+  background: var(--surface);
+  border-left: 4px solid var(--orange-500);
+  bottom: 0;
+  box-shadow: -8px 0 32px rgb(0 0 0 / 14%);
+  display: grid;
+  gap: 1.1rem;
+  max-width: 26rem;
+  padding: 1.5rem;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 92vw;
+  z-index: 20;
 }
 
 @keyframes slide-in {
-	from {
-		transform: translateX(1.5rem);
-	}
+  from {
+    transform: translateX(1.5rem);
+  }
 }
 
 .summary {
-	display: grid;
-	gap: 0.6rem;
-	margin: 0;
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
 }
 
 .summary div {
-	display: grid;
-	gap: 0.1rem;
+  display: grid;
+  gap: 0.1rem;
 }
 
 .summary dt {
-	color: var(--ink-soft);
-	font-size: 0.8rem;
-	font-weight: 600;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .summary dd {
-	font-weight: 600;
-	margin: 0;
+  font-weight: 600;
+  margin: 0;
 }
 
 .drawer-actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
 }
 
 /* Narrow screens: the panel becomes a bottom sheet. */
 @media (width <= 900px) {
-	.drawer {
-		animation: none;
-		border-left: 0;
-		border-radius: 12px 12px 0 0;
-		border-top: 4px solid var(--orange-500);
-		max-width: none;
-		top: auto;
-		width: 100%;
-	}
+  .drawer {
+    animation: none;
+    border-left: 0;
+    border-radius: 12px 12px 0 0;
+    border-top: 4px solid var(--orange-500);
+    max-width: none;
+    top: auto;
+    width: 100%;
+  }
 }

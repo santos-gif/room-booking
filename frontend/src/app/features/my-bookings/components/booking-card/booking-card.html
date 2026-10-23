@@ -1,35 +1,35 @@
 <article class="booking-card">
-	<div class="when">
-		<span class="date">{{ appointment().start_time | date: 'EEE d MMM' : 'Asia/Jakarta' }}</span>
-		<span class="time">
-			{{ appointment().start_time | date: 'HH:mm' : 'Asia/Jakarta' }}–{{
-				appointment().end_time | date: 'HH:mm' : 'Asia/Jakarta'
-			}}
-			<small>WIB</small>
-		</span>
-	</div>
-	<div class="meta">
-		<span class="chip chip-orange">Room {{ appointment().room_number }}</span>
-		@if (appointment().sync_status === 'failed') {
-			<span class="chip" role="status">Calendar sync pending</span>
-		}
-	</div>
-	<div class="actions">
-		<button
-			type="button"
-			class="btn btn-primary"
-			[disabled]="busy()"
-			(click)="updateRequested.emit()"
-		>
-			Update
-		</button>
-		<button
-			type="button"
-			class="btn btn-danger"
-			[disabled]="busy()"
-			(click)="cancelRequested.emit()"
-		>
-			Cancel
-		</button>
-	</div>
+  <div class="when">
+    <span class="date">{{ appointment().start_time | date: 'EEE d MMM' : 'Asia/Jakarta' }}</span>
+    <span class="time">
+      {{ appointment().start_time | date: 'HH:mm' : 'Asia/Jakarta' }}–{{
+        appointment().end_time | date: 'HH:mm' : 'Asia/Jakarta'
+      }}
+      <small>WIB</small>
+    </span>
+  </div>
+  <div class="meta">
+    <span class="chip chip-orange">Room {{ appointment().room_number }}</span>
+    @if (appointment().sync_status === 'failed') {
+      <span class="chip" role="status">Calendar sync pending</span>
+    }
+  </div>
+  <div class="actions">
+    <button
+      type="button"
+      class="btn btn-primary"
+      [disabled]="busy()"
+      (click)="updateRequested.emit()"
+    >
+      Update
+    </button>
+    <button
+      type="button"
+      class="btn btn-danger"
+      [disabled]="busy()"
+      (click)="cancelRequested.emit()"
+    >
+      Cancel
+    </button>
+  </div>
 </article>

@@ -1,31 +1,31 @@
 <aside class="drawer" aria-label="Confirm appointment">
-	<h2>{{ updating() ? 'Confirm your update' : 'Confirm your booking' }}</h2>
-	<dl class="summary">
-		<div>
-			<dt>Room</dt>
-			<dd>Discussion Room {{ room() }}</dd>
-		</div>
-		<div>
-			<dt>Date</dt>
-			<dd>{{ slot().start_time | date: 'EEEE, d MMMM y' : 'Asia/Jakarta' }}</dd>
-		</div>
-		<div>
-			<dt>Time</dt>
-			<dd>
-				{{ slot().start_time | date: 'hh:mm a' : 'Asia/Jakarta' }} —
-				{{ slot().end_time | date: 'hh:mm a' : 'Asia/Jakarta' }} WIB
-			</dd>
-		</div>
-	</dl>
-	<div class="drawer-actions">
-		<button
-			type="button"
-			class="btn btn-primary"
-			[disabled]="submitting()"
-			(click)="confirmed.emit()"
-		>
-			{{ submitting() ? 'Saving…' : updating() ? 'Update booking' : 'Confirm' }}
-		</button>
-		<button type="button" class="btn" (click)="dismissed.emit()">Close</button>
-	</div>
+  <h2>{{ updating() ? 'Confirm your update' : 'Confirm your booking' }}</h2>
+  <dl class="summary">
+    <div>
+      <dt>Room</dt>
+      <dd>Discussion Room {{ room() }}</dd>
+    </div>
+    <div>
+      <dt>Date</dt>
+      <dd>{{ slot().start_time | date: 'EEEE, d MMMM y' : 'Asia/Jakarta' }}</dd>
+    </div>
+    <div>
+      <dt>Time</dt>
+      <dd>
+        {{ slot().start_time | date: 'hh:mm a' : 'Asia/Jakarta' }} —
+        {{ slot().end_time | date: 'hh:mm a' : 'Asia/Jakarta' }} WIB
+      </dd>
+    </div>
+  </dl>
+  <div class="drawer-actions">
+    <button
+      type="button"
+      class="btn btn-primary"
+      [disabled]="submitting()"
+      (click)="confirmed.emit()"
+    >
+      {{ submitting() ? 'Saving…' : updating() ? 'Update booking' : 'Confirm' }}
+    </button>
+    <button type="button" class="btn" (click)="dismissed.emit()">Close</button>
+  </div>
 </aside>

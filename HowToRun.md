@@ -60,7 +60,7 @@ Login pertama meminta NIM dan jurusan (onboarding), setelah itu masuk ke "My boo
 cd backend
 .venv\Scripts\python.exe -m pytest -q
 
-# frontend (101 test, 27 file)
+# frontend (105 test, 29 file)
 cd frontend
 npx ng test --no-watch
 ```
@@ -73,6 +73,7 @@ npx playwright test anonymous.ui anonymous.flows
 ```
 
 Peta kode backend (struktur folder, aturan impor, "mau ubah X → lihat file Y"): `backend/ARCHITECTURE.md`.
+Peta kode frontend (pola folder per fitur, siapa boleh memanggil siapa, penyimpangan yang diketahui): `frontend/ARCHITECTURE.md`.
 
 Build produksi: `cd frontend && npx ng build`.
 

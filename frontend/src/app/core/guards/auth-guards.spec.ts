@@ -54,8 +54,13 @@ describe('authenticatedGuard (a server problem is not the same as being signed o
 	it('says the session expired when a 401 comes while the sign-in cookie still exists', () => {
 		document.cookie = 'csrf_token=abc';
 		try {
-			const { outcome, router } = run(throwError(() => ({ status: 401 })), '/my-bookings');
-			expect(router.serializeUrl(outcome() as UrlTree)).toBe('/?auth_error=session_expired');
+			const { outcome, router } = run(
+				throwError(() => ({ status: 401 })),
+				'/my-bookings',
+			);
+			expect(router.serializeUrl(outcome() as UrlTree)).toBe(
+				'/?auth_error=session_expired',
+			);
 		} finally {
 			document.cookie = 'csrf_token=; max-age=0';
 		}

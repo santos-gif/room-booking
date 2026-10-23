@@ -1,40 +1,40 @@
 <section class="card controls" aria-label="Date and room">
-	<div class="field">
-		<label for="booking-date">Date</label>
-		<!-- The native input sits invisibly on top (real picker, phone friendly); the text under it is what is seen. -->
-		<div class="date-field">
-			<span class="input date-text">{{ date() | date: 'EEE, dd-MM-yyyy' }}</span>
-			<input
-				#picker
-				id="booking-date"
-				name="booking-date"
-				class="date-native"
-				type="date"
-				[disabled]="disabled()"
-				[value]="date()"
-				[min]="minDate"
-				[max]="maxDate"
-				(click)="openPicker(picker)"
-				(change)="pick(picker)"
-			/>
-		</div>
-	</div>
+  <div class="field">
+    <label for="booking-date">Date</label>
+    <!-- The native input sits invisibly on top (real picker, phone friendly); the text under it is what is seen. -->
+    <div class="date-field">
+      <span class="input date-text">{{ date() | date: 'EEE, dd-MM-yyyy' }}</span>
+      <input
+        #picker
+        id="booking-date"
+        name="booking-date"
+        class="date-native"
+        type="date"
+        [disabled]="disabled()"
+        [value]="date()"
+        [min]="minDate"
+        [max]="maxDate"
+        (click)="openPicker(picker)"
+        (change)="pick(picker)"
+      />
+    </div>
+  </div>
 
-	<fieldset class="field rooms" [disabled]="disabled()">
-		<legend>Room</legend>
-		<div class="segmented">
-			@for (number of rooms; track number) {
-				<label>
-					<input
-						type="radio"
-						name="room"
-						[value]="number"
-						[checked]="room() === number"
-						(change)="roomChange.emit(number)"
-					/>
-					<span>Discussion Room {{ number }}</span>
-				</label>
-			}
-		</div>
-	</fieldset>
+  <fieldset class="field rooms" [disabled]="disabled()">
+    <legend>Room</legend>
+    <div class="segmented">
+      @for (number of rooms; track number) {
+        <label>
+          <input
+            type="radio"
+            name="room"
+            [value]="number"
+            [checked]="room() === number"
+            (change)="roomChange.emit(number)"
+          />
+          <span>Discussion Room {{ number }}</span>
+        </label>
+      }
+    </div>
+  </fieldset>
 </section>

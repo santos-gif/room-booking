@@ -3,7 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { AuthService } from '../../../core/services/auth-service';
-import { BookingFormService } from '../services/booking-form.service';
+import { BookingFormService } from '../service/booking-form.service';
 import { BookingAppointment } from '../types/booking-form';
 import { BookingFormPage } from './booking-form-page';
 
@@ -34,15 +34,25 @@ describe('BookingFormPage in update mode (never saves a booking that is gone)', 
 			mine: () => mine,
 			book: vi.fn(() => of({})),
 			reschedule: vi.fn(() => of({})),
+			invalidateBookings: vi.fn(),
 		};
 		TestBed.configureTestingModule({
 			providers: [
 				provideRouter([{ path: 'my-bookings', children: [] }]),
-				{ provide: AuthService, useValue: { login: vi.fn(), logout: vi.fn() } },
+				{
+					provide: AuthService,
+					useValue: { login: vi.fn(), logout: vi.fn() },
+				},
 				{ provide: MatDialog, useValue: { open: vi.fn() } },
 				{
 					provide: ActivatedRoute,
-					useValue: { snapshot: { queryParamMap: convertToParamMap({ reschedule: 'b1' }) } },
+					useValue: {
+						snapshot: {
+							queryParamMap: convertToParamMap({
+								reschedule: 'b1',
+							}),
+						},
+					},
 				},
 			],
 		});
@@ -64,11 +74,17 @@ describe('BookingFormPage in update mode (never saves a booking that is gone)', 
 		const { fixture, page, api } = setup(of([]));
 		TestBed.tick();
 		expect(navigate).toHaveBeenCalledWith(['/my-bookings']);
-		expect((fixture.nativeElement as HTMLElement).textContent).toContain('could not find that booking');
+		expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+			'could not find that booking',
+		);
 		page.pick(freeSlot);
 		page.confirmBooking();
 		expect(api.reschedule).not.toHaveBeenCalled();
-		const slots = [...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.slot')];
+		const slots = [
+			...(
+				fixture.nativeElement as HTMLElement
+			).querySelectorAll<HTMLButtonElement>('.slot'),
+		];
 		expect(slots.length).toBeGreaterThan(0);
 		expect(slots.every((slot) => slot.disabled)).toBe(true);
 	});

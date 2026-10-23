@@ -1,21 +1,38 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { BookingsStore } from '../../../core/services/bookings-store';
 import { NavigationLock } from '../../../core/services/navigation-lock';
+import { BookingFormService } from '../service/booking-form.service';
 import { guardBookingPage } from './page-lifecycle';
 
 describe('guardBookingPage', () => {
 	function setup() {
-		TestBed.configureTestingModule({ providers: [provideRouter([])] });
+		const invalidate = vi.fn();
+		TestBed.configureTestingModule({
+			providers: [
+				provideRouter([]),
+				{
+					provide: BookingFormService,
+					useValue: { invalidateBookings: invalidate },
+				},
+			],
+		});
 		const saving = signal(false);
 		const gone = signal(false);
-		const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
-		const invalidate = vi.spyOn(TestBed.inject(BookingsStore), 'invalidate');
+		const navigate = vi
+			.spyOn(TestBed.inject(Router), 'navigate')
+			.mockResolvedValue(true);
 		const hold = signal(false);
 		TestBed.runInInjectionContext(() => guardBookingPage(saving, gone, hold));
 		TestBed.tick();
-		return { saving, gone, hold, navigate, invalidate, lock: TestBed.inject(NavigationLock) };
+		return {
+			saving,
+			gone,
+			hold,
+			navigate,
+			invalidate,
+			lock: TestBed.inject(NavigationLock),
+		};
 	}
 
 	it('locks the navbar only while saving, and unlocks when the page is destroyed', () => {

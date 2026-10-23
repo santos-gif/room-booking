@@ -1,86 +1,88 @@
 :host {
-	display: block;
-	margin-bottom: 1rem;
+  display: block;
+  margin-bottom: 1rem;
 }
 
 h2 small {
-	color: var(--ink-soft);
-	font-size: 0.75rem;
-	font-weight: 600;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .loading {
-	align-items: center;
-	color: var(--ink-soft);
-	display: flex;
-	gap: 0.75rem;
-	justify-content: center;
-	margin-top: 1rem;
-	min-height: 8rem;
+  align-items: center;
+  color: var(--ink-soft);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1rem;
+  min-height: 8rem;
 }
 
 .slots {
-	display: grid;
-	gap: 0.6rem;
-	grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
-	margin-top: 1rem;
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  margin-top: 1rem;
 }
 
 .slot {
-	align-items: center;
-	background: var(--surface);
-	border: 1.5px solid var(--green-700);
-	border-radius: var(--radius-sm);
-	color: var(--green-900);
-	cursor: pointer;
-	display: grid;
-	font: inherit;
-	gap: 0.1rem;
-	justify-items: center;
-	min-height: 3.6rem;
-	padding: 0.5rem;
-	transition: background-color 0.15s, border-color 0.15s;
+  align-items: center;
+  background: var(--surface);
+  border: 1.5px solid var(--green-700);
+  border-radius: var(--radius-sm);
+  color: var(--green-900);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 0.1rem;
+  justify-items: center;
+  min-height: 3.6rem;
+  padding: 0.5rem;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
 }
 
 .slot .t {
-	font-size: 1.05rem;
-	font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .slot .s {
-	font-size: 0.75rem;
-	font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .slot:hover:not(:disabled) {
-	background: var(--green-50);
+  background: var(--green-50);
 }
 
 .slot.selected,
 .slot.selected:hover:not(:disabled) {
-	background: var(--orange-500);
-	border-color: var(--orange-600);
-	color: var(--ink);
+  background: var(--orange-500);
+  border-color: var(--orange-600);
+  color: var(--ink);
 }
 
 .slot:disabled {
-	background: var(--hover);
-	border-color: var(--line);
-	color: var(--ink-soft);
-	cursor: not-allowed;
+  background: var(--hover);
+  border-color: var(--line);
+  color: var(--ink-soft);
+  cursor: not-allowed;
 }
 
 .slot:disabled .t {
-	text-decoration: line-through;
+  text-decoration: line-through;
 }
 
 /* The time this booking has now (while updating): not offered, because picking it changes nothing. */
 .slot.current:disabled {
-	background: var(--green-50);
-	border-color: var(--green-700);
-	color: var(--green-900);
+  background: var(--green-50);
+  border-color: var(--green-700);
+  color: var(--green-900);
 }
 
 .slot.current:disabled .t {
-	text-decoration: none;
+  text-decoration: none;
 }

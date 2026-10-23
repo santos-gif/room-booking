@@ -1,75 +1,75 @@
 <app-header />
 <main class="page" [class.with-drawer]="selectedSlot() && !resultMessage()">
-	<div class="head">
-		<div>
-			<h1>{{ updating ? 'Update booking' : 'Book a room' }}</h1>
-			<p class="lead">
-				{{
-					updating
-						? 'Pick the new day, room and time. Your current booking is replaced.'
-						: 'Choose a weekday, a room, then a one-hour time.'
-				}}
-			</p>
-		</div>
-		@if (!updating) {
-			<p class="chip chip-orange quota" aria-live="polite">
-				{{ bookingsRemaining() }} of 3 bookings left
-			</p>
-		}
-	</div>
+  <div class="head">
+    <div>
+      <h1>{{ updating ? 'Update booking' : 'Book a room' }}</h1>
+      <p class="lead">
+        {{
+          updating
+            ? 'Pick the new day, room and time. Your current booking is replaced.'
+            : 'Choose a weekday, a room, then a one-hour time.'
+        }}
+      </p>
+    </div>
+    @if (!updating) {
+      <p class="chip chip-orange quota" aria-live="polite">
+        {{ bookingsRemaining() }} of 3 bookings left
+      </p>
+    }
+  </div>
 
-	<app-booking-controls
-		[date]="bookingDate()"
-		[room]="roomNumber()"
-		[disabled]="loading() || submitting()"
-		(dateChange)="changeDate($event)"
-		(roomChange)="changeRoom($event)"
-	/>
+  <app-booking-controls
+    [date]="bookingDate()"
+    [room]="roomNumber()"
+    [disabled]="loading() || submitting()"
+    (dateChange)="changeDate($event)"
+    (roomChange)="changeRoom($event)"
+  />
 
-	@if (errorMessage()) {
-		<p class="alert" role="alert">{{ errorMessage() }}</p>
-	}
-	@if (availabilityError() && !loading()) {
-		<button type="button" class="btn retry" (click)="retry()">Try again</button>
-	}
-	@if (bookingsRemaining() === 0) {
-		<p class="alert alert-info" role="status">
-			You hold 3 upcoming bookings. Cancel one to book another.
-		</p>
-	} @else if (noFreeSlot()) {
-		<p class="alert alert-info" role="status">
-			No free times for this date and room. Try another day or room.
-		</p>
-	}
+  @if (errorMessage()) {
+    <p class="alert" role="alert">{{ errorMessage() }}</p>
+  }
+  @if (availabilityError() && !loading()) {
+    <button type="button" class="btn retry" (click)="retry()">Try again</button>
+  }
+  @if (bookingsRemaining() === 0) {
+    <p class="alert alert-info" role="status">
+      You hold 3 upcoming bookings. Cancel one to book another.
+    </p>
+  } @else if (noFreeSlot()) {
+    <p class="alert alert-info" role="status">
+      No free times for this date and room. Try another day or room.
+    </p>
+  }
 
-	<app-slot-grid
-		[slots]="slots()"
-		[selected]="selectedSlot()"
-		[current]="currentStart()"
-		[loading]="loading()"
-		[disabled]="submitting() || blocked()"
-		(pick)="pick($event)"
-	/>
+  <app-slot-grid
+    [slots]="slots()"
+    [selected]="selectedSlot()"
+    [current]="currentStart()"
+    [loading]="loading()"
+    [disabled]="submitting() || blocked()"
+    (pick)="pick($event)"
+  />
 
-	@if (selectedSlot(); as selected) {
-		@if (!resultMessage()) {
-			<app-confirm-panel
-				[slot]="selected"
-				[room]="roomNumber()"
-				[updating]="updating"
-				[submitting]="submitting()"
-				(confirmed)="confirmBooking()"
-				(dismissed)="clearSelection()"
-			/>
-		}
-	}
+  @if (selectedSlot(); as selected) {
+    @if (!resultMessage()) {
+      <app-confirm-panel
+        [slot]="selected"
+        [room]="roomNumber()"
+        [updating]="updating"
+        [submitting]="submitting()"
+        (confirmed)="confirmBooking()"
+        (dismissed)="clearSelection()"
+      />
+    }
+  }
 
-	@if (resultMessage()) {
-		<app-result-dialog
-			[message]="resultMessage()"
-			[reconnectNeeded]="calendarReconnectNeeded()"
-			(reconnect)="auth.login()"
-			(closed)="closeResult()"
-		/>
-	}
+  @if (resultMessage()) {
+    <app-result-dialog
+      [message]="resultMessage()"
+      [reconnectNeeded]="calendarReconnectNeeded()"
+      (reconnect)="auth.login()"
+      (closed)="closeResult()"
+    />
+  }
 </main>

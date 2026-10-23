@@ -1,38 +1,38 @@
 .head {
-	align-items: flex-end;
-	display: flex;
-	flex-wrap: wrap;
-	gap: 1rem;
-	justify-content: space-between;
-	margin-bottom: 1.25rem;
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
 }
 
 .head .lead {
-	margin-top: 0.35rem;
+  margin-top: 0.35rem;
 }
 
 .quota {
-	font-size: 0.9rem;
+  font-size: 0.9rem;
 }
 
 .retry {
-	margin-bottom: 1rem;
+  margin-bottom: 1rem;
 }
 
 .page > .alert {
-	margin-bottom: 1rem;
+  margin-bottom: 1rem;
 }
 
 /* Wide screens: the confirm panel sits beside the content instead of covering it. */
 @media (width > 900px) {
-	.with-drawer {
-		margin-inline: 0 27rem;
-	}
+  .with-drawer {
+    margin-inline: 0 27rem;
+  }
 }
 
 /* Narrow screens: the panel is a bottom sheet; keep scroll room above it. */
 @media (width <= 900px) {
-	.with-drawer {
-		padding-bottom: 22rem;
-	}
+  .with-drawer {
+    padding-bottom: 22rem;
+  }
 }

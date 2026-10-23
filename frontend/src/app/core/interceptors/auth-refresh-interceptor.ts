@@ -35,7 +35,12 @@ export const authRefreshInterceptor: HttpInterceptorFn = (req, next) => {
 					// own error, not an expired session.
 					switchMap(() =>
 						next(
-							req.clone({ headers: req.headers.set('X-Retry-Attempt', '1') }),
+							req.clone({
+								headers: req.headers.set(
+									'X-Retry-Attempt',
+									'1',
+								),
+							}),
 						),
 					),
 				);

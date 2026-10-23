@@ -1,8 +1,8 @@
 import { computed, effect, signal, untracked, WritableSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { jakartaDate } from '../../../core/utils/jakarta-today';
+import { jakartaDate } from '../../../shared/helpers/jakarta-today';
 import { BookingAppointment } from '../types/booking-form';
-import { BookingFormService } from './booking-form.service';
+import { BookingFormService } from '../service/booking-form.service';
 
 interface UpdateView {
 	room: WritableSignal<1 | 2>;
@@ -22,17 +22,19 @@ export function loadUpdateTarget(api: BookingFormService, id: string | null, vie
 	const current = signal<BookingAppointment | null>(null);
 	const missing = signal(false);
 	if (id) {
-		api.mine().pipe(takeUntilDestroyed()).subscribe({
-			next: (list) => {
-				const found = list.find((booking) => booking.id === id);
-				if (found) {
-					current.set(found);
-				} else {
-					missing.set(true);
-				}
-			},
-			error: () => missing.set(true),
-		});
+		api.mine()
+			.pipe(takeUntilDestroyed())
+			.subscribe({
+				next: (list) => {
+					const found = list.find((booking) => booking.id === id);
+					if (found) {
+						current.set(found);
+					} else {
+						missing.set(true);
+					}
+				},
+				error: () => missing.set(true),
+			});
 	}
 
 	effect(() => {

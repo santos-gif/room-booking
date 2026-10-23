@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Major } from '../../../core/types/auth';
 import { AppHeader } from '../../../shared/components/app-header/app-header';
 import { ProfileForm } from '../components/profile-form/profile-form';
-import { OnboardingService } from '../services/onboarding.service';
+import { OnboardingService } from '../service/onboarding.service';
 
 type ProfileDraft = { nim: number | null; major: Major | '' };
 
