@@ -6,13 +6,11 @@ from google.oauth2.credentials import Credentials
 from oauthlib.oauth2.rfc6749.errors import OAuth2Error
 from postgrest.exceptions import APIError
 from requests.exceptions import RequestException
-from starlette.requests import Request
 from supabase import Client
 from supabase_auth.errors import AuthError
 
 from app.config import settings
 from app.cookies import (
-	OAUTH_VERIFIER_COOKIE,
 	clear_oauth_cookies,
 	set_csrf_cookie,
 	set_google_access_cookie,
@@ -38,7 +36,8 @@ ALLOWED_DOMAINS = {"student.pradita.ac.id", "pradita.ac.id"}
 
 def _is_allowed_email(email: str) -> bool:
 	local_part, separator, domain = email.rpartition("@")
-	return bool(separator and local_part and domain.casefold() in ALLOWED_DOMAINS)
+	# ASCII only and lower(): the same comparison the database makes (casefold would also fold odd letters).
+	return bool(email.isascii() and separator and local_part and domain.lower() in ALLOWED_DOMAINS)
 
 
 def _needs_onboarding(supabase: Client, profile_id: str) -> bool:
@@ -73,25 +72,13 @@ def _get_refresh_token(supabase: Client, profile_id: str, credentials: Credentia
 
 
 def complete_google_oauth(
-	state: str | Request | None = None,
-	code: str | Client | None = None,
-	error: str | None = None,
-	supabase: Client | None = None,
-	oauth_state: str | None = None,
-	oauth_verifier: str | None = None,
+	state: str | None,
+	code: str | None,
+	error: str | None,
+	supabase: Client | None,
+	oauth_state: str | None,
+	oauth_verifier: str | None,
 ) -> RedirectResponse:
-	if isinstance(state, Request):
-		req = state
-		supabase = code if (supabase is None and code is not None and not isinstance(code, str)) else supabase
-		oauth_state = error if (oauth_state is None and isinstance(error, str)) else oauth_state
-		oauth_verifier = (
-			oauth_verifier
-			or req.cookies.get(OAUTH_VERIFIER_COOKIE)
-			or "mock-verifier"
-		)
-		state = req.query_params.get("state")
-		code = req.query_params.get("code")
-		error = req.query_params.get("error")
 	if not supabase:
 		raise GoogleCredentialException("Supabase client is required.")
 	if not oauth_state or not state or not secrets.compare_digest(oauth_state, state):
@@ -118,12 +105,12 @@ def complete_google_oauth(
 	identity = verify_google_identity(credentials.id_token)
 	if not identity.sub or not identity.email or not identity.email_verified:
 		return _failure_redirect("verified_email_required")
-	email = identity.email.strip().casefold()
+	email = identity.email.strip().lower()
 	if not _is_allowed_email(email):
 		return _failure_redirect("university_email_required")
 	# A verified address alone is not enough: Google must vouch that the account belongs to a Pradita
 	# Workspace (hd is the tenant's primary domain, so it need not equal the email's domain).
-	if (identity.hd or "").casefold() not in ALLOWED_DOMAINS:
+	if (identity.hd or "").lower() not in ALLOWED_DOMAINS:
 		return _failure_redirect("university_email_required")
 	if not credentials.token:
 		raise GoogleCredentialException("Google did not return an access token.")

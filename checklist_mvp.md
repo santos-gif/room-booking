@@ -6,8 +6,8 @@ Terakhir dijalankan: 2026-10-21.
 
 | Pemeriksaan | Hasil |
 |---|---|
-| Unit test backend (`pytest`, 21 file, 102 test) | PASSED 102/102 |
-| Unit test frontend (`ng test`, 26 file, 97 test) | PASSED 97/97 |
+| Unit test backend (`pytest`, 21 file, 105 test) | PASSED 105/105 |
+| Unit test frontend (`ng test`, 27 file, 100 test) | PASSED 100/100 |
 | Build produksi (`ng build`) | OK, tanpa peringatan budget |
 | Pemeriksaan tampilan 390×844 dan 1440×900 (12 skenario, API di-mock) | PASSED 12/12 |
 | Migrasi Supabase `…0004`, `…0005` | Diterapkan, diverifikasi dengan query |
@@ -61,3 +61,7 @@ Hasil audit manual (review kode, fuzzing 4.500+ request, pengujian dari luar ter
 - Token akses Google di cookie tidak diikat ke pengguna (risiko rendah, butuh akses ke akun Google lain).
 - Jika pembatalan sebuah reschedule gagal tepat setelah event lama dihapus, mahasiswa bisa kehilangan kedua booking (sangat jarang).
 - Pembaruan otomatis My bookings (setiap ~35 detik) membuat satu permintaan per tab terbuka; belum ada koordinasi antar tab.
+- **Login lain di Supabase:** metode login Email di Supabase aktif dan pendaftaran terbuka. Matikan (Authentication > Sign In / Providers > Email) agar satu-satunya jalan masuk adalah Google (yang memeriksa domain, `hd` dan izin Calendar).
+- **Email kampus yang dipakai ulang** bisa mewarisi akun lama jika Supabase otomatis menautkan identitas; belum ada pengikatan ke `sub` Google (perlu kolom baru + migrasi).
+- **Pengguna yang dikeluarkan dari Workspace** tetap punya sesi sampai 30 hari (sesi diperpanjang setiap refresh); batasi masa sesi di Supabase jika paketnya mendukung.
+- **Kalender ruangan harus dibagikan** ke semua mahasiswa dengan izin "Make changes to events"; jika tidak, booking gagal dengan pesan yang meminta pemilik membagikan kalendernya.

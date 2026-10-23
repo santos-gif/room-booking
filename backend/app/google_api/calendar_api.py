@@ -13,6 +13,7 @@ from supabase import Client
 from app.config import settings
 from app.google_api.credentials import calendar_credentials
 from app.google_api.exceptions import (
+	GoogleCalendarAccessException,
 	GoogleCalendarOperationException,
 	GoogleConfigurationException,
 )
@@ -52,6 +53,14 @@ def calendar_service(
 	return build("calendar", "v3", http=http, cache_discovery=False)
 
 
+def _no_write_access(error: HttpError) -> bool:
+	"""404 (calendar unknown to this account) or a 403 that is not just Google's rate limit."""
+	if error.resp.status == 404:
+		return True
+	text = str(error.content).lower()
+	return error.resp.status == 403 and "ratelimit" not in text and "quota" not in text
+
+
 def create_calendar_event(
 	supabase: Client,
 	user_id: str,
@@ -71,6 +80,8 @@ def create_calendar_event(
 			return service.events().insert(calendarId=calendar_id, body=body).execute()
 		except HttpError as error:
 			# 409 = this ID already exists (an earlier attempt landed); 5xx = gateway/timeout.
+			if _no_write_access(error):
+				raise GoogleCalendarAccessException() from error
 			if error.resp.status != 409 and error.resp.status < 500:
 				raise GoogleCalendarOperationException() from error
 		except GoogleAuthError as error:

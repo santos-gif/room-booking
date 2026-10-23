@@ -13,6 +13,7 @@ from app.api.v1.appointment.exceptions import (
 	AppointmentNotFoundException,
 	AppointmentStorageException,
 	AppointmentValidationException,
+	CalendarAccessException,
 	CalendarSyncException,
 	DailyBookingLimitException,
 	ProfileIncompleteException,
@@ -25,6 +26,7 @@ from app.google_api.calendar_api import create_calendar_event, room_calendar_id
 from app.google_api.calendar_single_event import delete_calendar_event
 from app.google_api.exceptions import (
 	GoogleAuthorizationException,
+	GoogleCalendarAccessException,
 	GoogleCalendarOperationException,
 	GoogleCredentialException,
 	GoogleRefreshTokenException,
@@ -123,6 +125,8 @@ def create_appointment(
 			mark_failed(supabase, appointment_id)
 		else:
 			discard_pending_booking(supabase, appointment_id)
+		if isinstance(error, GoogleCalendarAccessException):
+			raise CalendarAccessException() from error
 		raise CalendarSyncException() from error
 	except Exception:
 		# Anything unexpected (transport error, undecryptable token): never leave the slot held pending.

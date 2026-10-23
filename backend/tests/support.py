@@ -1,7 +1,6 @@
 """Shared builders for the backend test modules."""
 from datetime import date, datetime, time, timedelta, timezone
 
-from starlette.requests import Request
 
 from app.api.v1.appointment.types import JAKARTA_TZ
 from app.api.v1.auth.types import AuthenticatedUser
@@ -38,16 +37,3 @@ def pending_record(appointment_id: str, start: datetime) -> dict[str, object]:
 		"status": "pending",
 		"sync_status": "pending",
 	}
-
-
-def oauth_callback_request() -> Request:
-	"""Fake the Google OAuth redirect request carrying state and code."""
-	return Request(
-		{
-			"type": "http",
-			"method": "GET",
-			"path": "/api/v1/google-auth/oauth2callback",
-			"query_string": b"state=oauth-state&code=oauth-code",
-			"headers": [],
-		}
-	)

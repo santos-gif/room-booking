@@ -49,6 +49,17 @@ class CalendarSyncException(HTTPException):
 		)
 
 
+class CalendarAccessException(HTTPException):
+	def __init__(self) -> None:
+		super().__init__(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail=(
+				"Your Google account cannot add events to this room's calendar. "
+				"Ask the room's owner to share the calendar with you (permission: make changes to events)."
+			),
+		)
+
+
 class ProfileIncompleteException(HTTPException):
 	def __init__(self) -> None:
 		super().__init__(

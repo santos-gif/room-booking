@@ -78,3 +78,7 @@ class GoogleConfigurationException(HTTPException):
 
 class GoogleCalendarOperationException(Exception):
 	pass
+
+
+class GoogleCalendarAccessException(GoogleCalendarOperationException):
+	"""The signed-in Google account may not write to the room calendar (not shared with it)."""

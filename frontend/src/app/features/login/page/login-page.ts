@@ -30,8 +30,9 @@ export class LoginPage {
 	});
 	private readonly redirectEffect = effect(() => {
 		const user = this.currentUser();
-		// A refused sign-in shows Access denied even when an older session is still cached.
-		if (user && !this.loginService.deniedReason()) {
+		// A failed or refused sign-in must show its message even when an older session cookie is still
+		// valid; the student can then retry instead of being silently sent on with a broken Calendar link.
+		if (user && !this.loginService.deniedReason() && !this.loginService.errorMessage()) {
 			void this.router.navigate([
 				user.onboarding_complete ? '/my-bookings' : '/onboarding',
 			]);

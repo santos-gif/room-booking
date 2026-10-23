@@ -4,7 +4,6 @@ from unittest.mock import Mock, patch
 
 from google.oauth2.credentials import Credentials
 from postgrest.exceptions import APIError
-from support import oauth_callback_request
 
 from app.api.v1.google_auth.callback import complete_google_oauth
 from app.config import settings
@@ -42,7 +41,6 @@ class GoogleOAuthTests(unittest.TestCase):
 		user_supabase.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = (
 			SimpleNamespace(data=[{"nim": 123456, "major": "Information Technology"}])
 		)
-		request = oauth_callback_request()
 
 		with (
 			patch("app.api.v1.google_auth.callback.create_flow", return_value=flow),
@@ -68,7 +66,7 @@ class GoogleOAuthTests(unittest.TestCase):
 			patch.object(settings, "FRONTEND_URL", "https://frontend.example"),
 			patch.object(settings, "COOKIE_SECURE", True),
 		):
-			response = complete_google_oauth(request, public_supabase, "oauth-state")
+			response = complete_google_oauth("oauth-state", "oauth-code", None, public_supabase, "oauth-state", "verifier")
 
 		public_supabase.auth.sign_in_with_id_token.assert_called_once_with(
 			{"provider": "google", "token": "verified-google-id-token"}
@@ -111,7 +109,6 @@ class GoogleOAuthTests(unittest.TestCase):
 				"message": "An existing profile requires administrator identity linking",
 			}
 		)
-		request = oauth_callback_request()
 
 		with (
 			patch("app.api.v1.google_auth.callback.create_flow", return_value=flow),
@@ -131,7 +128,7 @@ class GoogleOAuthTests(unittest.TestCase):
 			patch.object(settings, "GOOGLE_CLIENT_ID", "google-client-id"),
 			patch.object(settings, "FRONTEND_URL", "https://frontend.example"),
 		):
-			response = complete_google_oauth(request, supabase, "oauth-state")
+			response = complete_google_oauth("oauth-state", "oauth-code", None, supabase, "oauth-state", "verifier")
 
 		self.assertIn("auth_error=account_link_required", response.headers["location"])
 		cookies = response.headers.getlist("set-cookie")

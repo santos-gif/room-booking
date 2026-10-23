@@ -35,6 +35,9 @@ class CallbackRedirectTests(unittest.IsolatedAsyncioTestCase):
 			({"email": "a@student.pradita.ac.id", "email_verified": False}, "verified_email_required"),
 			({"email": "not-an-email", "email_verified": True}, "university_email_required"),
 			({"email": "a@gmail.com", "email_verified": True}, "university_email_required"),
+			# casefold() would fold the long s to "s" and match; lower() on ASCII-only emails must not.
+			({"email": "a@ſtudent.pradita.ac.id", "email_verified": True, "hd": "student.pradita.ac.id"}, "university_email_required"),
+			({"email": "é@student.pradita.ac.id", "email_verified": True, "hd": "student.pradita.ac.id"}, "university_email_required"),
 			# Verified Pradita address but no Workspace domain claim (a plain Google account using it).
 			({"email": "a@student.pradita.ac.id", "email_verified": True}, "university_email_required"),
 			({"email": "a@student.pradita.ac.id", "email_verified": True, "hd": "gmail.com"}, "university_email_required"),
