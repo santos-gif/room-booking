@@ -1,4 +1,5 @@
 import unittest
+from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -47,7 +48,11 @@ class ReconcileResilienceTests(unittest.TestCase):
 
 class BookingRollbackTests(unittest.TestCase):
 	def test_missing_token_rolls_back_the_pending_row(self) -> None:
-		for error in (GoogleRefreshTokenException("none"), GoogleCredentialException("bad")):
+		for error in (
+			GoogleRefreshTokenException("none"),
+			GoogleCredentialException("bad"),
+			RuntimeError("transport error while refreshing the Google token"),
+		):
 			start = next_weekday_start(9)
 			supabase = Mock()
 			supabase.table.return_value.insert.return_value.execute.return_value = SimpleNamespace(
@@ -58,6 +63,7 @@ class BookingRollbackTests(unittest.TestCase):
 				patch("app.api.v1.appointment.booking.room_calendar_id", return_value="room"),
 				patch("app.api.v1.appointment.booking.create_calendar_event", side_effect=error),
 				self.assertRaises(type(error)),
+				self.assertLogs(level="ERROR") if isinstance(error, RuntimeError) else nullcontext(),
 			):
 				create_appointment(
 					AppointmentPayload(room_number=1, start_time=start),

@@ -5,6 +5,12 @@ import { catchError, Observable, of } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 
+const DENIED_CODES = [
+	'university_email_required',
+	'verified_email_required',
+	'account_link_required',
+];
+
 @Injectable()
 export class LoginService {
 	private readonly authService = inject(AuthService);
@@ -15,6 +21,12 @@ export class LoginService {
 	});
 
 	readonly errorMessage = computed(() => this.authError());
+
+	/** Refused sign-ins get their own Access denied page instead of a message on the form. */
+	readonly deniedReason = computed(() => {
+		const code = this.queryParams().get('auth_error') ?? '';
+		return DENIED_CODES.includes(code) ? code : '';
+	});
 
 	login(): void {
 		this.authService.login();
@@ -30,16 +42,14 @@ export class LoginService {
 			google_exchange_failed: 'Google sign-in failed. Please try again.',
 			calendar_consent_required:
 				'Grant Google Calendar access to finish connecting your account.',
-			verified_email_required: 'Sign in with a verified Google account.',
-			university_email_required:
-				'Use your @student.pradita.ac.id or @pradita.ac.id account.',
-			account_link_required:
-				'Contact an administrator to securely link your existing booking profile.',
+			// verified_email_required, university_email_required and account_link_required
+			// are refusals: they open the Access denied page instead (see deniedReason).
 			session_expired: 'Your session expired. Please sign in again.',
 			server_unavailable:
 				'The server is not reachable right now. Please try again in a moment.',
 		};
 		const code = this.queryParams().get('auth_error') ?? '';
-		return errors[code] ?? '';
+		// hasOwn: ?auth_error=constructor must not find Object's own members.
+		return Object.hasOwn(errors, code) ? errors[code] : '';
 	}
 }

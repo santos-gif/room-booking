@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
-import { Appointment } from '../../types/my-bookings';
+import { Appointment } from '../../../../core/types/appointment';
 
 /** One upcoming booking, shown in WIB. Updating and cancelling are the parent's job: this only reports clicks. */
 @Component({

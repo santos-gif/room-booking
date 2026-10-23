@@ -27,6 +27,24 @@ describe('BookingControls (only Room 1 and Room 2 exist)', () => {
 		expect(rooms).toEqual([2]);
 	});
 
+	it('locks the date and both rooms while loading or saving, and unlocks them after', () => {
+		const { fixture, root } = render();
+		// :disabled is what the browser uses; radios inside <fieldset disabled> match it although their own
+		// .disabled property stays false.
+		const locked = () =>
+			[
+				root.querySelector('#booking-date')!,
+				...root.querySelectorAll('input[type=radio]'),
+			].map((el) => el.matches(':disabled'));
+		expect(locked()).toEqual([false, false, false]);
+		fixture.componentRef.setInput('disabled', true);
+		fixture.detectChanges();
+		expect(locked()).toEqual([true, true, true]);
+		fixture.componentRef.setInput('disabled', false);
+		fixture.detectChanges();
+		expect(locked()).toEqual([false, false, false]);
+	});
+
 	it('shows the date as day-month-year, whatever the browser locale', () => {
 		const { root } = render();
 		expect(root.querySelector('.date-text')?.textContent?.trim()).toBe(

@@ -24,6 +24,8 @@ from app.queries import appointments as appointment_queries
 MAX_ACTIVE_BOOKINGS = 3
 # A slot closes this long before it starts.
 LEAD = timedelta(minutes=5)
+# Same limit as the database trigger (appointments_booking_window).
+MAX_ADVANCE = timedelta(days=90)
 APPOINTMENTS_ADAPTER = TypeAdapter(list[AppointmentRecord])
 
 
@@ -62,6 +64,8 @@ def _validate_slot(start_time: datetime, room_number: int) -> datetime:
 		)
 	if local_start <= datetime.now(JAKARTA_TZ) + LEAD:
 		raise AppointmentValidationException("Bookings close 5 minutes before the slot starts.")
+	if local_start > datetime.now(JAKARTA_TZ) + MAX_ADVANCE:
+		raise AppointmentValidationException("Bookings open at most 90 days ahead.")
 	return local_start
 
 
@@ -83,6 +87,12 @@ def _calendar_event(
 		"start": {"dateTime": start_time.isoformat(), "timeZone": "Asia/Jakarta"},
 		"end": {"dateTime": end_time.isoformat(), "timeZone": "Asia/Jakarta"},
 	}
+
+
+def _booker_name(user: AuthenticatedUser) -> str:
+	"""Name for the event title: one short line, no control characters (it is shown on the room calendar)."""
+	name = "".join(c for c in " ".join((user.name or "").split()) if c.isprintable())[:60].strip()
+	return name or user.email.partition("@")[0]
 
 
 def get_availability(

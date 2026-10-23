@@ -21,12 +21,16 @@
 	<app-booking-controls
 		[date]="bookingDate()"
 		[room]="roomNumber()"
+		[disabled]="loading() || submitting()"
 		(dateChange)="changeDate($event)"
 		(roomChange)="changeRoom($event)"
 	/>
 
 	@if (errorMessage()) {
 		<p class="alert" role="alert">{{ errorMessage() }}</p>
+	}
+	@if (availabilityError() && !loading()) {
+		<button type="button" class="btn retry" (click)="retry()">Try again</button>
 	}
 	@if (bookingsRemaining() === 0) {
 		<p class="alert alert-info" role="status">
@@ -43,7 +47,7 @@
 		[selected]="selectedSlot()"
 		[current]="currentStart()"
 		[loading]="loading()"
-		[disabled]="submitting()"
+		[disabled]="submitting() || blocked()"
 		(pick)="pick($event)"
 	/>
 
@@ -64,7 +68,7 @@
 		<app-result-dialog
 			[message]="resultMessage()"
 			[reconnectNeeded]="calendarReconnectNeeded()"
-			(reconnect)="reconnectCalendar()"
+			(reconnect)="auth.login()"
 			(closed)="closeResult()"
 		/>
 	}

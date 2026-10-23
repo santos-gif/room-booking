@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Appointment } from '../../types/my-bookings';
+import { Appointment } from '../../../../core/types/appointment';
 import { BookingCard } from './booking-card';
 
 const appointment: Appointment = {

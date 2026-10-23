@@ -33,9 +33,12 @@ from app.queries.google_tokens import load_refresh_token, store_refresh_token
 logger = logging.getLogger(__name__)
 
 
+ALLOWED_DOMAINS = {"student.pradita.ac.id", "pradita.ac.id"}
+
+
 def _is_allowed_email(email: str) -> bool:
 	local_part, separator, domain = email.rpartition("@")
-	return bool(separator and local_part and domain.casefold() in {"student.pradita.ac.id", "pradita.ac.id"})
+	return bool(separator and local_part and domain.casefold() in ALLOWED_DOMAINS)
 
 
 def _needs_onboarding(supabase: Client, profile_id: str) -> bool:
@@ -117,6 +120,10 @@ def complete_google_oauth(
 		return _failure_redirect("verified_email_required")
 	email = identity.email.strip().casefold()
 	if not _is_allowed_email(email):
+		return _failure_redirect("university_email_required")
+	# A verified address alone is not enough: Google must vouch that the account belongs to a Pradita
+	# Workspace (hd is the tenant's primary domain, so it need not equal the email's domain).
+	if (identity.hd or "").casefold() not in ALLOWED_DOMAINS:
 		return _failure_redirect("university_email_required")
 	if not credentials.token:
 		raise GoogleCredentialException("Google did not return an access token.")

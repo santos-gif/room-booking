@@ -52,6 +52,7 @@ class GoogleOAuthTests(unittest.TestCase):
 					"sub": "google-subject",
 					"email": "student@student.pradita.ac.id",
 					"email_verified": True,
+					"hd": "student.pradita.ac.id",
 					"name": "Student",
 				},
 			),
@@ -120,6 +121,7 @@ class GoogleOAuthTests(unittest.TestCase):
 					"sub": "google-subject",
 					"email": "student@student.pradita.ac.id",
 					"email_verified": True,
+					"hd": "student.pradita.ac.id",
 				},
 			),
 			patch(

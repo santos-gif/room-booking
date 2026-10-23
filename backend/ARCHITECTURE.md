@@ -34,6 +34,7 @@ app/
       reconcile.py     cron job: fix bookings that disagree with Google Calendar
       reconcile_sync.py          one booking vs its calendar event
       reconcile_replacements.py  cancel the old booking after a confirmed reschedule
+      verify.py        GET /?verify=true: drop bookings whose Google event was deleted, fix old titles
 ```
 
 ## The one-way import rule
@@ -61,6 +62,7 @@ Tests patch a name where it is *used* (e.g. `booking.create_calendar_event`).
 | what happens when a booking fails midway    | `api/v1/appointment/booking.py`                        |
 | cancelling or rescheduling                  | `cancel.py`, `reschedule.py` in `appointment/`         |
 | the nightly repair job                      | `appointment/reconcile*.py`                            |
+| deleted-in-Google bookings on My bookings   | `appointment/verify.py`                                |
 | any Supabase query on appointments          | `queries/appointments.py`                              |
 | an HTTP route path or its inputs            | the `router.py` of that feature                        |
 | the CSRF check                              | `main.py`                                              |
@@ -84,3 +86,17 @@ Tests patch a name where it is *used* (e.g. `booking.create_calendar_event`).
   `auth/helper.py` only fires once such a constraint exists.
 - The catch-all 500 handler in `main.py` is served outside `CORSMiddleware`, so a browser may
   not see CORS headers on that response.
+- `GET /api/v1/appointments/?verify=true` checks up to 10 upcoming *confirmed* bookings of the
+  caller against Google (8 s budget). A 404/410 or `cancelled` event moves the row to cancelled
+  through `update_own_appointment_state`, but a 404/410 only counts as "gone" if
+  `calendar_is_reachable` (calendars.get) confirms the room calendar is still readable by that
+  user; an unreachable calendar (403/404/410) keeps the row and logs a warning. A wrong title is
+  healed; any other failure keeps the row. Each user is verified at most once per 30 s
+  (in-memory, per instance, so it limits bursts, not globally); inside that window the plain list
+  is returned with no Google call. The cron secret check lives in `reconcile.py`
+  (`require_cron_secret`, compares bytes so a non-ASCII header is a 401).
+  Limitation: nothing is pushed. Other students only see a slot freed by a Calendar-side delete
+  after the owner opens My bookings (verify) or the daily cron runs. Google Calendar push
+  notifications (events.watch) would fix that and were not built.
+- Unmapped insert errors still become the generic 500 storage error (only 23P01, 23505, P0001 and,
+  for reschedules, 23514/23503 are mapped).

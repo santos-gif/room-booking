@@ -51,6 +51,16 @@ describe('authenticatedGuard (a server problem is not the same as being signed o
 		expect(router.serializeUrl(outcome() as UrlTree)).toBe('/');
 	});
 
+	it('says the session expired when a 401 comes while the sign-in cookie still exists', () => {
+		document.cookie = 'csrf_token=abc';
+		try {
+			const { outcome, router } = run(throwError(() => ({ status: 401 })), '/my-bookings');
+			expect(router.serializeUrl(outcome() as UrlTree)).toBe('/?auth_error=session_expired');
+		} finally {
+			document.cookie = 'csrf_token=; max-age=0';
+		}
+	});
+
 	it('tells the student the server is unreachable (5xx / offline) instead of treating them as signed out', () => {
 		for (const status of [0, 500, 503]) {
 			const { outcome, router } = run(

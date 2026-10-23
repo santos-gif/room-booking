@@ -21,15 +21,6 @@ export const authRefreshInterceptor: HttpInterceptorFn = (req, next) => {
 				!req.headers.has('X-Retry-Attempt')
 			) {
 				return authService.refresh().pipe(
-					switchMap(() => {
-						const retriedReq = req.clone({
-							headers: req.headers.set(
-								'X-Retry-Attempt',
-								'1',
-							),
-						});
-						return next(retriedReq);
-					}),
 					catchError((refreshError) => {
 						// The session cannot be renewed: back to sign-in instead of a page of failing requests.
 						if (router.url.split('?')[0] !== '/') {
@@ -39,6 +30,13 @@ export const authRefreshInterceptor: HttpInterceptorFn = (req, next) => {
 						}
 						return throwError(() => refreshError);
 					}),
+					// Outside the catch above: a retry that fails (409 slot taken, 500) is that request's
+					// own error, not an expired session.
+					switchMap(() =>
+						next(
+							req.clone({ headers: req.headers.set('X-Retry-Attempt', '1') }),
+						),
+					),
 				);
 			}
 			return throwError(() => error);

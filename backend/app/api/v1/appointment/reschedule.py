@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
-from fastapi import HTTPException, Response
+from fastapi import Response
 from supabase import Client
 
 from app.api.v1.appointment.booking import create_appointment
@@ -57,7 +57,7 @@ def reschedule_appointment(
 			expires_at,
 			response,
 		)
-	except HTTPException as error:
+	except Exception as error:  # noqa: BLE001 - any failure must undo the new booking
 		try:
 			cancel_appointment(
 				new_appointment.id,
@@ -67,7 +67,7 @@ def reschedule_appointment(
 				expires_at,
 				response,
 			)
-		except HTTPException as compensation_error:
+		except Exception as compensation_error:  # noqa: BLE001
 			logger.error(
 				"Reschedule cleanup failed; both appointments need reconciliation.",
 				exc_info=compensation_error,

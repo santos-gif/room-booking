@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authenticatedGuard } from './core/guards/auth-guards';
+import { unlessLocked } from './core/guards/leave-guard';
 
 // Pages are lazy so the first paint only ships the login screen; app.config preloads the rest.
 const onboarding = () =>
@@ -30,6 +31,7 @@ export const routes: Routes = [
 				(m) => m.BookingFormPage,
 			),
 		canActivate: [authenticatedGuard],
+		canDeactivate: [unlessLocked],
 	},
 	{
 		path: 'my-bookings',
@@ -38,6 +40,13 @@ export const routes: Routes = [
 				(m) => m.MyBookingsPage,
 			),
 		canActivate: [authenticatedGuard],
+	},
+	{
+		path: 'access-denied',
+		loadComponent: () =>
+			import('./features/access-denied/page/access-denied-page').then(
+				(m) => m.AccessDeniedPage,
+			),
 	},
 	{ path: '**', redirectTo: '' },
 ];

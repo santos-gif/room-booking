@@ -50,7 +50,7 @@ describe('SlotGrid (a taken slot can never be booked)', () => {
 		).toBeTruthy();
 	});
 
-	it('outlines the time the booking being updated already has, labelled Your booking', () => {
+	it('strips the booking’s own time from the choices (picking it changes nothing), but labels it', () => {
 		// Same instant in two spellings: the API mixes +07:00 and Z.
 		const { fixture, buttons } = render({
 			slots: [slot('09', true), slot('10', true)],
@@ -60,6 +60,8 @@ describe('SlotGrid (a taken slot can never be booked)', () => {
 			...(fixture.nativeElement as HTMLElement).querySelectorAll('.slot.current'),
 		];
 		expect(outlined.length).toBe(1);
+		expect(buttons[0].disabled).toBe(true);
+		expect(buttons[1].disabled).toBe(false);
 		expect(buttons[0].textContent).toContain('Your booking');
 		expect(buttons[1].textContent).toContain('Free');
 	});

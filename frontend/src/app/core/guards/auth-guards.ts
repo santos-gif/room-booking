@@ -19,14 +19,17 @@ export const authenticatedGuard: CanActivateFn = (_route, state) => {
 		}),
 		// 401/404 mean "not signed in". Anything else (server down, offline) is not the student's fault:
 		// say so on the login page instead of pretending they are signed out.
-		catchError((error: { status?: number }) =>
-			of(
-				router.parseUrl(
-					error?.status === 401 || error?.status === 404
-						? '/'
-						: '/?auth_error=server_unavailable',
-				),
-			),
-		),
+		catchError((error: { status?: number }) => {
+			const status = error?.status;
+			// A 401 while the csrf cookie still exists means a session existed but could not be renewed.
+			const expired = status === 401 && document.cookie.includes('csrf_token=');
+			const target =
+				status === 401 || status === 404
+					? expired
+						? '/?auth_error=session_expired'
+						: '/'
+					: '/?auth_error=server_unavailable';
+			return of(router.parseUrl(target));
+		}),
 	);
 };

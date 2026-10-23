@@ -82,3 +82,17 @@ class CalendarTitleTests(unittest.TestCase):
 			self.assertEqual(sync_row(Mock(), row), "synchronized")
 		self.assertEqual(update.call_args.args[4]["summary"], "Discussion Room 1-Santos (123)")
 		self.assertEqual(_calendar_event("i", 2, start, start)["summary"], "Discussion Room 2")
+
+
+class BookerNameTests(unittest.TestCase):
+	def test_name_is_one_short_clean_line(self) -> None:
+		from app.api.v1.appointment.slots import _booker_name
+
+		base = student_user()
+		messy = base.model_copy(update={"name": "  Santos\n\tMahasiswa\x07 " + "x" * 100})
+		name = _booker_name(messy)
+		self.assertEqual(name[:17], "Santos Mahasiswa ")
+		self.assertLessEqual(len(name), 60)
+		self.assertTrue(name.isprintable())
+		blank = base.model_copy(update={"name": "\n\x07"})
+		self.assertEqual(_booker_name(blank), base.email.partition("@")[0])

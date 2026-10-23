@@ -1,4 +1,4 @@
-import { effect, Signal, signal } from '@angular/core';
+import { computed, effect, Signal, signal } from '@angular/core';
 import { catchError, EMPTY, switchMap } from 'rxjs';
 import { visibleTimer } from '../../../core/utils/visible-timer';
 import { AvailableSlot } from '../types/booking-form';
@@ -24,6 +24,8 @@ export function loadAvailability(api: BookingFormService, query: AvailabilityQue
 	const bookingsRemaining = signal(3);
 	const loading = signal(true);
 	const error = signal('');
+	/** The booking being updated no longer exists (the server answers 404 for it). */
+	const gone = signal(false);
 
 	effect((onCleanup) => {
 		const date = query.date();
@@ -36,7 +38,9 @@ export function loadAvailability(api: BookingFormService, query: AvailabilityQue
 			.pipe(
 				switchMap(() =>
 					api.availability(date, room, query.excludeId).pipe(
-						catchError(() => {
+						catchError((failure: { status?: number }) => {
+							// 404 can only mean the excluded booking is gone: the route itself exists.
+							gone.set(failure.status === 404 && !!query.excludeId);
 							error.set(
 								'Unable to refresh availability. Please try again.',
 							);
@@ -55,5 +59,10 @@ export function loadAvailability(api: BookingFormService, query: AvailabilityQue
 		onCleanup(() => subscription.unsubscribe());
 	});
 
-	return { slots, bookingsRemaining, loading, error };
+	/** Loaded, there are slots, and every one is taken (not the same as "nothing loaded yet"). */
+	const noFreeSlot = computed(
+		() => !loading() && slots().length > 0 && !slots().some((slot) => slot.available),
+	);
+
+	return { slots, bookingsRemaining, loading, error, noFreeSlot, gone };
 }

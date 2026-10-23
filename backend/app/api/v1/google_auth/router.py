@@ -25,7 +25,12 @@ router = APIRouter(prefix="/google-auth")
 
 @router.get("/login", response_class=RedirectResponse, response_model=None)
 async def login() -> RedirectResponse:
-	return create_google_login_response()
+	# Also a browser navigation: a misconfigured Google client must not show raw JSON to the student.
+	try:
+		return create_google_login_response()
+	except Exception:
+		logger.exception("Could not start Google sign-in.")
+		return _failure_redirect("server_unavailable")
 
 
 @router.get("/oauth2callback", response_class=RedirectResponse, response_model=None)

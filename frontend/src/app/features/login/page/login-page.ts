@@ -19,9 +19,19 @@ export class LoginPage {
 	private readonly currentUser = toSignal<AuthenticatedUser | null>(this.loginService.me(), {
 		initialValue: null,
 	});
+	private readonly deniedEffect = effect(() => {
+		const reason = this.loginService.deniedReason();
+		if (reason) {
+			void this.router.navigate(['/access-denied'], {
+				queryParams: { reason },
+				replaceUrl: true,
+			});
+		}
+	});
 	private readonly redirectEffect = effect(() => {
 		const user = this.currentUser();
-		if (user) {
+		// A refused sign-in shows Access denied even when an older session is still cached.
+		if (user && !this.loginService.deniedReason()) {
 			void this.router.navigate([
 				user.onboarding_complete ? '/my-bookings' : '/onboarding',
 			]);

@@ -1,5 +1,13 @@
 <div class="modal-backdrop">
-	<section class="modal card" role="dialog" aria-modal="true" aria-label="Booking result">
+	<section
+		class="modal card"
+		role="dialog"
+		aria-modal="true"
+		aria-label="Booking result"
+		cdkTrapFocus
+		[cdkTrapFocusAutoCapture]="true"
+		(keydown.escape)="closed.emit()"
+	>
 		<p>{{ message() }}</p>
 		<div class="actions">
 			@if (reconnectNeeded()) {
@@ -7,7 +15,9 @@
 					Reconnect Google Calendar
 				</button>
 			}
-			<button type="button" class="btn btn-primary" (click)="closed.emit()">Continue</button>
+			<button type="button" class="btn btn-primary" cdkFocusInitial (click)="closed.emit()">
+				Continue
+			</button>
 		</div>
 	</section>
 </div>

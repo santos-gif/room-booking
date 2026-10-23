@@ -34,6 +34,20 @@ def delete_calendar_event(
 		raise GoogleCalendarOperationException() from error
 
 
+def calendar_is_reachable(supabase: Client, user_id: str, calendar_id: str) -> bool:
+	"""True if the user can read the room calendar; False if it is unknown or no longer shared."""
+	try:
+		service = calendar_service(supabase, user_id, None, None, Response())
+		service.calendars().get(calendarId=calendar_id).execute()
+		return True
+	except HttpError as error:
+		if error.resp.status in (403, 404, 410):
+			return False
+		raise GoogleCalendarOperationException() from error
+	except (GoogleAuthError, httplib2.HttpLib2Error, OSError) as error:
+		raise GoogleCalendarOperationException() from error
+
+
 def update_calendar_event(
 	supabase: Client,
 	user_id: str,

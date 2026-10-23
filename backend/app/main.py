@@ -29,7 +29,8 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
 	yield
 
 
-app = FastAPI(lifespan=lifespan)
+# No public API docs: the schema would hand an attacker a map of every route.
+app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
 cors_origins = [
 	origin.strip()
@@ -37,13 +38,17 @@ cors_origins = [
 	if origin.strip()
 ]
 
+if "*" in cors_origins:
+	# With credentials a wildcard would let any website call the API as the signed-in student.
+	raise RuntimeError("CORS_ORIGINS must list explicit origins, not *.")
+
 app.add_middleware(
 	CORSMiddleware,
 	allow_origins=cors_origins,
 	allow_credentials=True,
-	allow_methods=["*"],
-	allow_headers=["*"]
-	)
+	allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+	allow_headers=["Content-Type", "X-CSRF-Token", "X-Retry-Attempt"],
+)
 
 
 @app.exception_handler(APIError)
@@ -85,7 +90,8 @@ async def check_csrf_cookie(
 	if (
 		not cookie_token
 		or not header_token
-		or not secrets.compare_digest(cookie_token, header_token)
+		# Bytes: compare_digest raises TypeError (a 500) on a non-ASCII str.
+		or not secrets.compare_digest(cookie_token.encode(), header_token.encode())
 	):
 		return JSONResponse(
 			status_code=403,
@@ -95,3 +101,12 @@ async def check_csrf_cookie(
 
 
 app.include_router(api_router)
+
+
+@app.middleware("http")
+async def add_api_headers(request: Request, call_next: RequestResponseEndpoint) -> Response:
+	response = await call_next(request)
+	# Per-student answers must never sit in a shared cache.
+	response.headers["Cache-Control"] = "no-store"
+	response.headers["X-Content-Type-Options"] = "nosniff"
+	return response

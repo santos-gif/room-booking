@@ -15,6 +15,10 @@
 	font-size: 0.9rem;
 }
 
+.retry {
+	margin-bottom: 1rem;
+}
+
 .page > .alert {
 	margin-bottom: 1rem;
 }

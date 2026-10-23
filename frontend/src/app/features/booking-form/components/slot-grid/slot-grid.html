@@ -15,7 +15,7 @@
 					[class.selected]="selected()?.start_time === slot.start_time"
 					[class.current]="isCurrent(slot)"
 					[attr.aria-pressed]="selected()?.start_time === slot.start_time"
-					[disabled]="!slot.available || disabled()"
+					[disabled]="!slot.available || disabled() || isCurrent(slot)"
 					(click)="pick.emit(slot)"
 				>
 					<span class="t">{{ slot.start_time | date: 'hh:mm a' : 'Asia/Jakarta' }}</span>

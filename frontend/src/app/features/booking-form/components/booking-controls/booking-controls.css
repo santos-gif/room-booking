@@ -40,6 +40,13 @@
 	width: 100%;
 }
 
+/* Locked while loading or saving: dim it so it is clear nothing can be pressed. */
+.date-field:has(:disabled) .date-text,
+.rooms:disabled .segmented {
+	cursor: not-allowed;
+	opacity: 0.55;
+}
+
 .date-field:focus-within .date-text {
 	border-color: var(--orange-500);
 	outline: 3px solid var(--orange-500);

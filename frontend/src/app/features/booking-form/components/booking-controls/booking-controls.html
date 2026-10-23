@@ -10,6 +10,7 @@
 				name="booking-date"
 				class="date-native"
 				type="date"
+				[disabled]="disabled()"
 				[value]="date()"
 				(click)="openPicker(picker)"
 				(change)="dateChange.emit(picker.value)"
@@ -17,7 +18,7 @@
 		</div>
 	</div>
 
-	<fieldset class="field rooms">
+	<fieldset class="field rooms" [disabled]="disabled()">
 		<legend>Room</legend>
 		<div class="segmented">
 			@for (number of rooms; track number) {

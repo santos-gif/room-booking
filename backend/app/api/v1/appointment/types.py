@@ -68,6 +68,7 @@ class ReconciliationResponse(BaseModel):
 	synchronized: int
 	released: int
 	failed: int
+	purged: int = 0
 
 
 __all__ = [

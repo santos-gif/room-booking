@@ -1,3 +1,4 @@
+/** One of the student's bookings, as the API returns it. */
 export interface Appointment {
 	id: string;
 	booker_id: string;

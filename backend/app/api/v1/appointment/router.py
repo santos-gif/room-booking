@@ -1,13 +1,12 @@
 from datetime import date
-import secrets
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Query, Response, status
+from fastapi import APIRouter, Cookie, Depends, Header, Query, Response, status
 from starlette.concurrency import run_in_threadpool
 
 from app.api.v1.appointment.booking import create_appointment, list_appointments
 from app.api.v1.appointment.cancel import cancel_appointment
-from app.api.v1.appointment.reconcile import reconcile_appointments
+from app.api.v1.appointment.reconcile import reconcile_appointments, require_cron_secret
 from app.api.v1.appointment.reschedule import reschedule_appointment
 from app.api.v1.appointment.slots import get_availability
 from app.api.v1.appointment.types import (
@@ -17,9 +16,9 @@ from app.api.v1.appointment.types import (
 	ReconciliationResponse,
 	ReschedulePayload,
 )
+from app.api.v1.appointment.verify import verify_appointments
 from app.api.v1.auth.helper import get_current_user
 from app.api.v1.auth.types import AuthenticatedUser
-from app.config import settings
 from app.cookies import GOOGLE_ACCESS_COOKIE, GOOGLE_ACCESS_EXPIRY_COOKIE
 from app.database import PublicSupabaseClient, SupabaseClient
 
@@ -29,8 +28,11 @@ router = APIRouter(prefix="/appointments")
 @router.get("/", response_model=list[AppointmentResponse])
 async def get_appointments(
 	supabase: SupabaseClient,
+	verify: bool = False,
 	current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> list[AppointmentResponse]:
+	if verify:
+		return await run_in_threadpool(verify_appointments, supabase, current_user)
 	return await run_in_threadpool(list_appointments, supabase, current_user)
 
 
@@ -57,17 +59,7 @@ async def reconcile_calendar(
 	supabase: PublicSupabaseClient,
 	authorization: str | None = Header(default=None),
 ) -> ReconciliationResponse:
-	if not settings.CRON_SECRET:
-		raise HTTPException(
-			status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-			detail="Calendar reconciliation is not configured.",
-		)
-	expected = f"Bearer {settings.CRON_SECRET}"
-	if not authorization or not secrets.compare_digest(authorization, expected):
-		raise HTTPException(
-			status_code=status.HTTP_401_UNAUTHORIZED,
-			detail="Unauthorized.",
-		)
+	require_cron_secret(authorization)
 	return await run_in_threadpool(reconcile_appointments, supabase)
 
 

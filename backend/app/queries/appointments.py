@@ -58,6 +58,22 @@ def update_own_state(
 	).execute().data
 
 
+def remove_own_cancelled(supabase: Client, appointment_id: str) -> bool:
+	"""Deletes the caller's own cancelled booking; False if it is still referenced or not theirs."""
+	data = supabase.rpc(
+		"remove_own_cancelled_appointment", {"target_appointment_id": appointment_id}
+	).execute().data
+	return bool(data)
+
+
+def purge_finished(supabase: Client) -> int:
+	"""Garbage collection: deletes cancelled and already-ended bookings, returns how many."""
+	data = supabase.rpc(
+		"purge_finished_appointments", {"backend_secret": settings.SUPABASE_BACKEND_RPC_SECRET}
+	).execute().data
+	return data if isinstance(data, int) else 0
+
+
 def discard_own_pending(supabase: Client, appointment_id: str) -> None:
 	supabase.rpc(
 		"discard_own_pending_appointment",

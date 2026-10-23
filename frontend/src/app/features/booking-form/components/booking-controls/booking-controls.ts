@@ -11,6 +11,8 @@ import { Component, input, output } from '@angular/core';
 export class BookingControls {
 	readonly date = input.required<string>();
 	readonly room = input.required<1 | 2>();
+	/** True while availability loads or a booking is saving: nothing here may be pressed then. */
+	readonly disabled = input(false);
 	readonly dateChange = output<string>();
 	readonly roomChange = output<1 | 2>();
 	protected readonly rooms = [1, 2] as const;

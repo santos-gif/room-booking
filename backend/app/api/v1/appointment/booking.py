@@ -10,12 +10,15 @@ from supabase import Client
 
 from app.api.v1.appointment.exceptions import (
 	AppointmentConflictException,
+	AppointmentNotFoundException,
 	AppointmentStorageException,
+	AppointmentValidationException,
 	CalendarSyncException,
 	DailyBookingLimitException,
 	ProfileIncompleteException,
 )
-from app.api.v1.appointment.slots import _calendar_event, _responses, _validate_slot
+from app.api.v1.appointment.rollback import discard_pending_booking, mark_failed
+from app.api.v1.appointment.slots import _booker_name, _calendar_event, _responses, _validate_slot
 from app.api.v1.appointment.types import AppointmentPayload, AppointmentResponse
 from app.api.v1.auth.types import AuthenticatedUser
 from app.google_api.calendar_api import create_calendar_event, room_calendar_id
@@ -38,18 +41,6 @@ def list_appointments(
 	return _responses(appointment_queries.list_active(supabase, current_user.id))
 
 
-def _discard_pending_booking(supabase: Client, appointment_id: str) -> None:
-	try:
-		appointment_queries.discard_own_pending(supabase, appointment_id)
-	except APIError:
-		# Keep the row visible to reconciliation instead of losing track of it.
-		logger.exception("Could not discard booking %s.", appointment_id)
-		try:
-			appointment_queries.update_own_state(supabase, appointment_id, "pending", "failed")
-		except APIError:
-			logger.exception("Could not mark booking %s as failed either.", appointment_id)
-
-
 def create_appointment(
 	payload: AppointmentPayload,
 	supabase: Client,
@@ -62,7 +53,7 @@ def create_appointment(
 	start_time = _validate_slot(payload.start_time, payload.room_number)
 	if current_user.nim is None:
 		raise ProfileIncompleteException()
-	name = (current_user.name or "").strip() or current_user.email.partition("@")[0]
+	name = _booker_name(current_user)
 	end_time = start_time + timedelta(hours=1)
 	calendar_id = room_calendar_id(payload.room_number)
 	appointment_id = str(uuid4())
@@ -83,12 +74,15 @@ def create_appointment(
 	try:
 		created = appointment_queries.insert(supabase, values)
 	except APIError as error:
-		if error.code == "23P01":
+		if error.code in ("23P01", "23505"):
 			raise AppointmentConflictException() from error
 		if error.code == "P0001":
 			raise DailyBookingLimitException() from error
-		if error.code == "23505":
-			raise AppointmentConflictException() from error
+		if replaces_appointment_id and error.code in ("23514", "23503"):
+			# The old booking was cancelled between the lookup and this insert.
+			raise AppointmentNotFoundException() from error
+		if error.code == "23514":  # the database's own booking-window rule, a moment after ours
+			raise AppointmentValidationException("That time can no longer be booked.") from error
 		logger.exception("Database rejected appointment reservation.")
 		raise AppointmentStorageException() from error
 	rows = _responses(created)
@@ -109,7 +103,7 @@ def create_appointment(
 		)
 	except (GoogleAuthorizationException, GoogleRefreshTokenException, GoogleCredentialException):
 		# No stored token or broken credentials: release the slot instead of holding it pending.
-		_discard_pending_booking(supabase, appointment_id)
+		discard_pending_booking(supabase, appointment_id)
 		raise
 	except GoogleCalendarOperationException as error:
 		logger.exception("Google Calendar event creation failed.")
@@ -126,10 +120,15 @@ def create_appointment(
 			)
 		except (GoogleAuthorizationException, GoogleCalendarOperationException):
 			logger.exception("Could not remove a possibly created event.")
-			appointment_queries.update_own_state(supabase, appointment_id, "pending", "failed")
+			mark_failed(supabase, appointment_id)
 		else:
-			_discard_pending_booking(supabase, appointment_id)
+			discard_pending_booking(supabase, appointment_id)
 		raise CalendarSyncException() from error
+	except Exception:
+		# Anything unexpected (transport error, undecryptable token): never leave the slot held pending.
+		logger.exception("Calendar event creation crashed.")
+		discard_pending_booking(supabase, appointment_id)
+		raise
 	try:
 		updated_data = appointment_queries.update_own_state(
 			supabase, appointment_id, "confirmed", "synced"

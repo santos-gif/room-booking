@@ -1,17 +1,14 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/services/auth-service';
 import { AuthenticatedUser, Major } from '../../../core/types/auth';
 
 @Injectable()
 export class OnboardingService {
-	private readonly http = inject(HttpClient);
+	private readonly auth = inject(AuthService);
 
+	/** Goes through AuthService so the cached user the route guards read is updated too. */
 	saveOnboarding(nim: number, major: Major): Observable<AuthenticatedUser> {
-		return this.http.post<AuthenticatedUser>(
-			`${environment.apiUrl}/auth/onboarding`,
-			{ nim, major },
-		);
+		return this.auth.saveOnboarding(nim, major);
 	}
 }

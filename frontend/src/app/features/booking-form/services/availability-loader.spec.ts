@@ -26,7 +26,10 @@ describe('loadAvailability (a stale slot list never shows)', () => {
 		vi.advanceTimersByTime(0);
 	};
 
-	function setup(api: (date: string, room: 1 | 2) => Observable<Availability>) {
+	function setup(
+		api: (date: string, room: 1 | 2) => Observable<Availability>,
+		excludeId?: string,
+	) {
 		const date = signal('2030-01-08');
 		const room = signal<1 | 2>(1);
 		const reload = signal(0);
@@ -38,7 +41,7 @@ describe('loadAvailability (a stale slot list never shows)', () => {
 			},
 		} as unknown as BookingFormService;
 		const loader = TestBed.runInInjectionContext(() =>
-			loadAvailability(service, { date, room, reload }),
+			loadAvailability(service, { date, room, reload, excludeId }),
 		);
 		flush();
 		return { date, room, reload, calls, loader };
@@ -78,6 +81,25 @@ describe('loadAvailability (a stale slot list never shows)', () => {
 		reload.update((n) => n + 1);
 		flush();
 		expect(calls.length).toBe(2);
+	});
+
+	it('says "no free slot" only when slots loaded and every one is taken', () => {
+		const taken = { ...slot('09'), available: false };
+		const free = setup(() => of(answer('09')));
+		expect(free.loader.noFreeSlot()).toBe(false);
+		TestBed.resetTestingModule();
+		const none = setup(() => of({ ...answer(), slots: [] }));
+		expect(none.loader.noFreeSlot()).toBe(false); // nothing at all is not "all taken"
+		TestBed.resetTestingModule();
+		const full = setup(() => of({ ...answer(), slots: [taken] }));
+		expect(full.loader.noFreeSlot()).toBe(true);
+	});
+
+	it('flags the booking as gone on a 404 only when one is being updated', () => {
+		const notFound = () => throwError(() => ({ status: 404 }));
+		expect(setup(notFound).loader.gone()).toBe(false); // nothing is being updated
+		TestBed.resetTestingModule();
+		expect(setup(notFound, 'b1').loader.gone()).toBe(true);
 	});
 
 	it('shows an error, not stale slots, when the first load fails', () => {

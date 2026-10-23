@@ -42,6 +42,20 @@ describe('authRefreshInterceptor', () => {
 		expect(body).toEqual({ ok: true });
 	});
 
+	it('keeps the retry own error: a 409 after a successful refresh is not an expired session', () => {
+		document.cookie = 'csrf_token=abc';
+		router.navigateByUrl.mockClear();
+		let status: number | undefined;
+		client.get('/api/bookings').subscribe({ error: (e) => (status = e.status) });
+
+		http.expectOne('/api/bookings').flush('expired', unauthorized);
+		http.expectOne((r) => r.url.endsWith('/auth/refresh')).flush({});
+		http.expectOne('/api/bookings').flush('taken', { status: 409, statusText: 'Conflict' });
+
+		expect(status).toBe(409);
+		expect(router.navigateByUrl).not.toHaveBeenCalled();
+	});
+
 	it('does not try to refresh when nobody is signed in (no csrf_token cookie)', () => {
 		let status: number | undefined;
 		client.get('/api/auth/me').subscribe({ error: (e) => (status = e.status) });

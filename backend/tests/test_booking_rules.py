@@ -67,3 +67,19 @@ class BookingRuleTests(unittest.TestCase):
 		self.assertEqual(OnboardingPayload(nim=2_510_101_051, major="Information Technology").nim, 2_510_101_051)
 		with self.assertRaises(ValidationError):
 			OnboardingPayload(nim=9_223_372_036_854_775_808, major="Information Technology")
+
+
+class BookingWindowTests(unittest.TestCase):
+	def test_bookings_open_at_most_90_days_ahead(self) -> None:
+		from datetime import timedelta
+
+		from app.api.v1.appointment.exceptions import AppointmentValidationException
+		from app.api.v1.appointment.slots import _validate_slot
+
+		start = next_weekday_start(9)
+		self.assertEqual(_validate_slot(start, 1), start.astimezone(_validate_slot(start, 1).tzinfo))
+		far = next_weekday_start(9) + timedelta(days=91)
+		while far.weekday() > 4:
+			far += timedelta(days=1)
+		with self.assertRaises(AppointmentValidationException):
+			_validate_slot(far, 1)
