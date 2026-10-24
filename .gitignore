@@ -60,3 +60,6 @@ playwright.config.ts
 skills-lock.json
 .mcp.json
 ss/
+
+# Small-choice log (decision-logs skill): local only
+decisions/

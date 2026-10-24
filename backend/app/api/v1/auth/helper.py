@@ -1,3 +1,7 @@
+import base64
+import json
+from datetime import datetime, timedelta, timezone
+
 from fastapi import Cookie
 from fastapi import HTTPException
 from postgrest.exceptions import APIError
@@ -14,6 +18,21 @@ from app.models.user import UserRecord
 USER_RECORDS = TypeAdapter(list[UserRecord])
 
 
+# A session is renewed for at most this long after the real Google sign-in, so a student removed from the
+# Workspace is cut off within a week. Placeholder: tune after real testing (decisions/auth.md).
+MAX_SESSION_AGE = timedelta(days=7)
+
+
+def _signed_in_at(access_token: str) -> datetime | None:
+	"""When the student really signed in, from the signed `amr` claim Supabase keeps through renewals."""
+	try:
+		claims = json.loads(base64.urlsafe_b64decode(access_token.split(".")[1] + "==="))
+		stamps = [int(entry["timestamp"]) for entry in claims.get("amr", [])]
+	except (IndexError, ValueError, TypeError, KeyError, AttributeError):
+		return None  # shortcut: no usable claim means no cap rather than a lockout; verify with a real token
+	return datetime.fromtimestamp(max(stamps), timezone.utc) if stamps else None
+
+
 def renew_tokens(
 	refresh_token: str | None,
 	supabase: Client,
@@ -27,6 +46,9 @@ def renew_tokens(
 	if auth_response.session is None:
 		raise CredentialsException()
 	session = auth_response.session
+	signed_in_at = _signed_in_at(session.access_token)
+	if signed_in_at and datetime.now(timezone.utc) - signed_in_at > MAX_SESSION_AGE:
+		raise CredentialsException()
 	return session.access_token, session.refresh_token, session.expires_in
 
 
