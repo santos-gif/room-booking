@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 from typing import Any, Literal
 
-from cryptography.fernet import Fernet
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -50,7 +49,7 @@ class Settings(BaseSettings):
 	GOOGLE_CALENDAR_ROOM_1_ID: str = ""
 	GOOGLE_CALENDAR_ROOM_2_ID: str = ""
 	GOOGLE_CALENDAR_ID: str = ""
-	GOOGLE_TOKEN_ENCRYPTION_KEY: str = ""
+	GOOGLE_SERVICE_ACCOUNT_JSON: str = ""
 	CRON_SECRET: str = ""
 	SUPABASE_BACKEND_RPC_SECRET: str = ""
 
@@ -103,7 +102,7 @@ def validate_integration_configuration() -> None:
 		"GOOGLE_REDIRECT_URI": settings.GOOGLE_REDIRECT_URI,
 		"GOOGLE_CALENDAR_ROOM_1_ID": settings.GOOGLE_CALENDAR_ROOM_1_ID,
 		"GOOGLE_CALENDAR_ROOM_2_ID": settings.GOOGLE_CALENDAR_ROOM_2_ID,
-		"GOOGLE_TOKEN_ENCRYPTION_KEY": settings.GOOGLE_TOKEN_ENCRYPTION_KEY,
+		"GOOGLE_SERVICE_ACCOUNT_JSON": settings.GOOGLE_SERVICE_ACCOUNT_JSON,
 		"SUPABASE_BACKEND_RPC_SECRET": settings.SUPABASE_BACKEND_RPC_SECRET,
 	}
 	missing = [name for name, value in required_settings.items() if not value.strip()]
@@ -118,9 +117,6 @@ def validate_integration_configuration() -> None:
 		raise RuntimeError(
 			f"Missing required integration configuration: {names}.{legacy_calendar_id}"
 		)
-	try:
-		Fernet(settings.GOOGLE_TOKEN_ENCRYPTION_KEY.encode("ascii"))
-	except (UnicodeEncodeError, ValueError) as error:
-		raise RuntimeError(
-			"GOOGLE_TOKEN_ENCRYPTION_KEY must be a valid Fernet key."
-		) from error
+	from app.google_api.credentials import calendar_credentials  # here: credentials.py imports this module
+
+	calendar_credentials()  # fails at startup, not on the first booking, if the key is unusable

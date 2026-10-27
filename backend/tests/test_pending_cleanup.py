@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from app.api.v1.appointment.reconcile import reconcile_appointments
-from app.google_api.exceptions import GoogleAuthorizationException, GoogleCalendarOperationException
+from app.google_api.exceptions import GoogleCalendarOperationException
 
 
 class PendingCleanupTests(unittest.TestCase):
@@ -44,7 +44,7 @@ class PendingCleanupTests(unittest.TestCase):
 
 		self.assertEqual(result.released, 1)
 		delete.assert_called_once()
-		self.assertEqual(delete.call_args.args[2:4], ("room-calendar", "event-id"))
+		self.assertEqual(delete.call_args.args, ("room-calendar", "event-id"))
 		create.assert_not_called()
 		discard = [c for c in supabase.rpc.call_args_list if c.args[0] == "discard_stale_pending_appointment"]
 		self.assertEqual(len(discard), 1)
@@ -54,13 +54,6 @@ class PendingCleanupTests(unittest.TestCase):
 
 		self.assertEqual(result.released, 0)
 		delete.assert_not_called()
-
-	def test_revoked_google_access_still_releases_the_slot(self) -> None:
-		with self.assertLogs("app.api.v1.appointment.reconcile", level="WARNING"):
-			result, _, _, _ = self._reconcile_pending(
-				timedelta(minutes=10), GoogleAuthorizationException("revoked")
-			)
-		self.assertEqual((result.released, result.failed), (1, 0))
 
 	def test_failed_event_cleanup_keeps_the_row_for_retry(self) -> None:
 		result, supabase, _, _ = self._reconcile_pending(

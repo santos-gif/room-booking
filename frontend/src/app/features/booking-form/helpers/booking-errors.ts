@@ -8,21 +8,8 @@ const NO_ANSWER =
 	'The server took too long to answer. Open My bookings to see whether it was saved before you try again.';
 const TAKEN = 'That time slot is no longer available, or you already hold 3 upcoming bookings.';
 
-export interface BookingFailure {
-	message: string;
-	/** Google rejected the Calendar token: offer "Reconnect Google Calendar". */
-	reconnect: boolean;
-}
-
 /** Turns a failed book/update call into what the student sees. Never shows a non-string detail. */
-export function describeBookingFailure(error: ApiFailure): BookingFailure {
-	return {
-		reconnect: error.status === 401,
-		message: describe(error),
-	};
-}
-
-function describe(error: ApiFailure): string {
+export function describeBookingFailure(error: ApiFailure): string {
 	if (error.name === 'TimeoutError') {
 		return NO_ANSWER;
 	}

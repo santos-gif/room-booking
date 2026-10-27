@@ -2,7 +2,6 @@
 import logging
 from datetime import datetime, timezone
 
-from fastapi import Response
 from postgrest.exceptions import APIError
 from supabase import Client
 
@@ -13,23 +12,12 @@ from app.google_api.calendar_single_event import (
 	get_calendar_event,
 	update_calendar_event,
 )
-from app.google_api.exceptions import (
-	GoogleAuthorizationException,
-	GoogleCalendarOperationException,
-	GoogleCredentialException,
-	GoogleRefreshTokenException,
-)
+from app.google_api.exceptions import GoogleCalendarOperationException
 from app.queries import appointments as appointment_queries
 
 logger = logging.getLogger(__name__)
 # What a Google or database call may raise without stopping the repair run: the row is logged and retried.
-RECONCILE_ERRORS = (
-	GoogleAuthorizationException,
-	GoogleCalendarOperationException,
-	GoogleCredentialException,
-	GoogleRefreshTokenException,
-	APIError,
-)
+RECONCILE_ERRORS = (GoogleCalendarOperationException, APIError)
 
 
 def stored_utc(value: object) -> datetime | None:
@@ -56,13 +44,11 @@ def _calendar_time_matches(event: dict[str, object], field: str, expected: objec
 def sync_row(supabase: Client, row: dict[str, object]) -> str:
 	"""Make Google match the row. Returns "synchronized", "released" or "failed"."""
 	appointment_id = row.get("id")
-	user_id = row.get("booker_id")
 	calendar_id = row.get("google_calendar_id")
 	event_id = row.get("google_event_id")
 	room_number = row.get("room_number")
 	if not (
 		isinstance(appointment_id, str)
-		and isinstance(user_id, str)
 		and isinstance(calendar_id, str)
 		and isinstance(event_id, str)
 		and room_number in (1, 2)
@@ -74,12 +60,10 @@ def sync_row(supabase: Client, row: dict[str, object]) -> str:
 	start_value = row.get("start_time")
 	end_value = row.get("end_time")
 	try:
-		event = get_calendar_event(supabase, user_id, calendar_id, event_id, None, None, Response())
+		event = get_calendar_event(calendar_id, event_id)
 		if event is None or event.get("status") == "cancelled":
 			if event is None and row.get("sync_status") in ("pending", "failed"):
 				event = create_calendar_event(
-					supabase,
-					user_id,
 					calendar_id,
 					event_id,
 					build_calendar_event(
@@ -89,9 +73,6 @@ def sync_row(supabase: Client, row: dict[str, object]) -> str:
 						datetime.fromisoformat(row["end_time"]).astimezone(JAKARTA_TZ),
 						*who,
 					),
-					None,
-					None,
-					Response(),
 				)
 			else:
 				appointment_queries.update_for_reconciliation(
@@ -109,16 +90,7 @@ def sync_row(supabase: Client, row: dict[str, object]) -> str:
 			if not all(who):
 				# update is a full replace: keep the title the booking was created with.
 				body["summary"] = event.get("summary") or body["summary"]
-			update_calendar_event(
-				supabase,
-				user_id,
-				calendar_id,
-				event_id,
-				body,
-				None,
-				None,
-				Response(),
-			)
+			update_calendar_event(calendar_id, event_id, body)
 		appointment_queries.update_for_reconciliation(supabase, appointment_id, "confirmed", "synced")
 		row["status"] = "confirmed"
 		row["sync_status"] = "synced"

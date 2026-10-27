@@ -121,5 +121,4 @@ class AuthSessionTests(unittest.IsolatedAsyncioTestCase):
 		cookies = response.headers.getlist("set-cookie")
 		self.assertTrue(any("access_token=" in c and 'Max-Age=0' in c for c in cookies))
 		self.assertTrue(any("refresh_token=" in c and 'Max-Age=0' in c for c in cookies))
-		self.assertTrue(any("google_access_token=" in c and 'Max-Age=0' in c for c in cookies))
 		self.assertTrue(any("csrf_token=" in c and 'Max-Age=0' in c for c in cookies))

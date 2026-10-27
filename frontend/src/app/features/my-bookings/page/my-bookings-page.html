@@ -11,11 +11,6 @@
   @if (errorMessage()) {
     <p class="alert" role="alert">{{ errorMessage() }}</p>
   }
-  @if (calendarReconnectNeeded()) {
-    <button type="button" class="btn" (click)="reconnectCalendar()">
-      Reconnect Google Calendar
-    </button>
-  }
 
   <!-- The panel is always there; only what is inside it changes as the data arrives. -->
   <section class="card panel" aria-label="Upcoming bookings" [attr.aria-busy]="!loaded()">

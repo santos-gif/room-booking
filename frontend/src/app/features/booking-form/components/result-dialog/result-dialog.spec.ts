@@ -2,10 +2,9 @@ import { TestBed } from '@angular/core/testing';
 import { ResultDialog } from './result-dialog';
 
 describe('ResultDialog (usable without a mouse)', () => {
-	function render(reconnectNeeded = false) {
+	function render() {
 		const fixture = TestBed.createComponent(ResultDialog);
 		fixture.componentRef.setInput('message', 'Appointment booked successfully.');
-		fixture.componentRef.setInput('reconnectNeeded', reconnectNeeded);
 		fixture.detectChanges();
 		return { fixture, root: fixture.nativeElement as HTMLElement };
 	}
@@ -25,11 +24,5 @@ describe('ResultDialog (usable without a mouse)', () => {
 		);
 		root.querySelector<HTMLButtonElement>('.btn-primary')!.click();
 		expect(closed).toBe(2);
-	});
-
-	it('offers the Calendar reconnect only when Google rejected the token', () => {
-		expect(render(false).root.textContent).not.toContain('Reconnect Google Calendar');
-		TestBed.resetTestingModule();
-		expect(render(true).root.textContent).toContain('Reconnect Google Calendar');
 	});
 });

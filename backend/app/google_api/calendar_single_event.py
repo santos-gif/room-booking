@@ -1,29 +1,16 @@
 from typing import Any
 
 import httplib2
-from fastapi import Response
 from google.auth.exceptions import GoogleAuthError
 from googleapiclient.errors import HttpError
-from supabase import Client
 
 from app.google_api.calendar_api import calendar_service
 from app.google_api.exceptions import GoogleCalendarOperationException
 
 
-def delete_calendar_event(
-	supabase: Client,
-	user_id: str,
-	calendar_id: str,
-	event_id: str,
-	access_token: str | None,
-	expires_at: int | None,
-	response: Response,
-) -> None:
+def delete_calendar_event(calendar_id: str, event_id: str) -> None:
 	try:
-		service = calendar_service(
-			supabase, user_id, access_token, expires_at, response
-		)
-		service.events().delete(
+		calendar_service().events().delete(
 			calendarId=calendar_id,
 			eventId=event_id,
 		).execute()
@@ -34,11 +21,11 @@ def delete_calendar_event(
 		raise GoogleCalendarOperationException() from error
 
 
-def calendar_is_reachable(supabase: Client, user_id: str, calendar_id: str) -> bool:
-	"""True if the user can read the room calendar; False if it is unknown or no longer shared."""
+def calendar_is_reachable(calendar_id: str) -> bool:
+	"""True if the service account can read the room calendar; False if it is unknown or no longer shared."""
 	try:
-		service = calendar_service(supabase, user_id, None, None, Response())
-		service.calendars().get(calendarId=calendar_id).execute()
+		# events.list, not calendars.get: the narrow calendar.events scope forbids calendars.get (checked live).
+		calendar_service().events().list(calendarId=calendar_id, maxResults=1).execute()
 		return True
 	except HttpError as error:
 		if error.resp.status in (403, 404, 410):
@@ -49,20 +36,12 @@ def calendar_is_reachable(supabase: Client, user_id: str, calendar_id: str) -> b
 
 
 def update_calendar_event(
-	supabase: Client,
-	user_id: str,
 	calendar_id: str,
 	event_id: str,
 	event_body: dict[str, Any],
-	access_token: str | None,
-	expires_at: int | None,
-	response: Response,
 ) -> dict[str, Any]:
 	try:
-		service = calendar_service(
-			supabase, user_id, access_token, expires_at, response
-		)
-		result: dict[str, Any] = service.events().update(
+		result: dict[str, Any] = calendar_service().events().update(
 			calendarId=calendar_id,
 			eventId=event_id,
 			body={**event_body, "id": event_id},
@@ -72,20 +51,9 @@ def update_calendar_event(
 		raise GoogleCalendarOperationException() from error
 
 
-def get_calendar_event(
-	supabase: Client,
-	user_id: str,
-	calendar_id: str,
-	event_id: str,
-	access_token: str | None,
-	expires_at: int | None,
-	response: Response,
-) -> dict[str, Any] | None:
+def get_calendar_event(calendar_id: str, event_id: str) -> dict[str, Any] | None:
 	try:
-		service = calendar_service(
-			supabase, user_id, access_token, expires_at, response
-		)
-		result: dict[str, Any] = service.events().get(
+		result: dict[str, Any] = calendar_service().events().get(
 			calendarId=calendar_id,
 			eventId=event_id,
 		).execute()

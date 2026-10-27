@@ -3,7 +3,6 @@ from unittest.mock import Mock, patch
 
 from fastapi import HTTPException
 from googleapiclient.errors import HttpError
-from support import student_user
 from types import SimpleNamespace
 
 from app.api.v1.appointment import verify
@@ -18,7 +17,7 @@ SERVICE = "app.google_api.calendar_single_event.calendar_service"
 
 def calendar_answering(status: int | None) -> Mock:
 	service = Mock()
-	get = service.calendars.return_value.get.return_value.execute
+	get = service.events.return_value.list.return_value.execute
 	if status:
 		get.side_effect = HttpError(SimpleNamespace(status=status, reason="x"), b"")
 	return service
@@ -53,11 +52,11 @@ class CalendarGuardTests(unittest.TestCase):
 	def test_reachability_by_http_status(self) -> None:
 		for status, expected in ((None, True), (404, False), (403, False), (410, False)):
 			with patch(SERVICE, return_value=calendar_answering(status)):
-				self.assertIs(calendar_is_reachable(Mock(), "u", "cal"), expected)
+				self.assertIs(calendar_is_reachable("cal"), expected)
 		with patch(SERVICE, return_value=calendar_answering(503)), self.assertRaises(
 			GoogleCalendarOperationException
 		):
-			calendar_is_reachable(Mock(), "u", "cal")
+			calendar_is_reachable("cal")
 
 
 class CooldownTests(unittest.TestCase):

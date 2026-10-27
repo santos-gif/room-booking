@@ -3,7 +3,6 @@ import logging
 from datetime import timedelta, timezone
 from uuid import uuid4
 
-from fastapi import Response
 from postgrest.exceptions import APIError
 from postgrest.types import JSON
 from supabase import Client
@@ -39,9 +38,6 @@ def create_appointment(
 	payload: AppointmentPayload,
 	supabase: Client,
 	current_user: AuthenticatedUser,
-	access_token: str | None,
-	expires_at: int | None,
-	response: Response,
 	replaces_appointment_id: str | None = None,
 ) -> AppointmentResponse:
 	"""Reserve the slot (a pending row), mirror it in Google Calendar, then confirm it."""
@@ -69,9 +65,7 @@ def create_appointment(
 	if replaces_appointment_id:
 		values["replaces_appointment_id"] = replaces_appointment_id
 	_reserve_slot(supabase, values, replaces_appointment_id)
-	create_event_or_roll_back(
-		supabase, current_user.id, appointment_id, calendar_id, event_id, event_body, access_token, expires_at, response
-	)
+	create_event_or_roll_back(supabase, appointment_id, calendar_id, event_id, event_body)
 	return _confirm(supabase, appointment_id)
 
 

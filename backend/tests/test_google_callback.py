@@ -12,8 +12,7 @@ from app.config import settings
 class GoogleOAuthTests(unittest.TestCase):
 	def test_google_callback_exchanges_id_token_and_sets_supabase_cookies(self) -> None:
 		google_credentials = Credentials(
-			token="google-calendar-access-token",
-			refresh_token="google-calendar-refresh-token",
+			token="google-access-token",
 			id_token="verified-google-id-token",
 		)
 		flow = Mock()
@@ -35,9 +34,7 @@ class GoogleOAuthTests(unittest.TestCase):
 		user_supabase = Mock()
 		profile_rpc = Mock()
 		profile_rpc.execute.return_value = SimpleNamespace(data="profile-id")
-		store_rpc = Mock()
-		store_rpc.execute.return_value = SimpleNamespace(data=None)
-		user_supabase.rpc.side_effect = [profile_rpc, store_rpc]
+		user_supabase.rpc.return_value = profile_rpc
 		user_supabase.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = (
 			SimpleNamespace(data=[{"nim": 123456, "major": "Information Technology"}])
 		)
@@ -58,10 +55,6 @@ class GoogleOAuthTests(unittest.TestCase):
 				"app.api.v1.google_auth.callback.create_supabase_client",
 				return_value=user_supabase,
 			) as create_user_client,
-			patch(
-				"app.api.v1.google_auth.callback_profile.encrypt_refresh_token",
-				return_value="encrypted-google-refresh-token",
-			),
 			patch.object(settings, "GOOGLE_CLIENT_ID", "google-client-id"),
 			patch.object(settings, "FRONTEND_URL", "https://frontend.example"),
 			patch.object(settings, "COOKIE_SECURE", True),
@@ -72,22 +65,19 @@ class GoogleOAuthTests(unittest.TestCase):
 			{"provider": "google", "token": "verified-google-id-token"}
 		)
 		create_user_client.assert_called_once_with("supabase-access-token")
-		store_rpc.execute.assert_called_once()
 		cookies = response.headers.getlist("set-cookie")
 		self.assertEqual(response.status_code, 303)
 		self.assertIn("/my-bookings", response.headers["location"])
 		self.assertTrue(any(cookie.startswith("access_token=") for cookie in cookies))
 		self.assertTrue(any(cookie.startswith("refresh_token=") for cookie in cookies))
-		self.assertTrue(
-			any(cookie.startswith("google_access_token=") for cookie in cookies)
-		)
+		# Calendar access is the service account's now: no Google token ever reaches the browser.
+		self.assertFalse(any(cookie.startswith("google_access_token=") for cookie in cookies))
 		self.assertTrue(any(cookie.startswith("csrf_token=") for cookie in cookies))
 
 	def test_google_callback_fails_closed_for_unmapped_existing_profile(self) -> None:
 		flow = Mock()
 		flow.credentials = Credentials(
-			token="google-calendar-access-token",
-			refresh_token="google-calendar-refresh-token",
+			token="google-access-token",
 			id_token="verified-google-id-token",
 		)
 		supabase = Mock()

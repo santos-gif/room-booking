@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Depends, Header, Query, Response, status
+from fastapi import APIRouter, Depends, Header, Query, status
 from starlette.concurrency import run_in_threadpool
 
 from app.api.v1.appointment.booking import create_appointment, list_appointments
@@ -19,7 +19,6 @@ from app.api.v1.appointment.types import (
 from app.api.v1.appointment.verify import verify_appointments
 from app.api.v1.auth.helper import get_current_user
 from app.api.v1.auth.types import AuthenticatedUser
-from app.cookies import GOOGLE_ACCESS_COOKIE, GOOGLE_ACCESS_EXPIRY_COOKIE
 from app.database import PublicSupabaseClient, SupabaseClient
 
 router = APIRouter(prefix="/appointments")
@@ -70,26 +69,14 @@ async def reconcile_calendar(
 )
 async def send_appointment(
 	payload: AppointmentPayload,
-	response: Response,
 	supabase: SupabaseClient,
 	current_user: AuthenticatedUser = Depends(get_current_user),
-	google_access_token: str | None = Cookie(
-		default=None,
-		alias=GOOGLE_ACCESS_COOKIE,
-	),
-	google_access_token_expires_at: int | None = Cookie(
-		default=None,
-		alias=GOOGLE_ACCESS_EXPIRY_COOKIE,
-	),
 ) -> AppointmentResponse:
 	return await run_in_threadpool(
 		create_appointment,
 		payload,
 		supabase,
 		current_user,
-		google_access_token,
-		google_access_token_expires_at,
-		response,
 	)
 
 
@@ -100,17 +87,8 @@ async def send_appointment(
 async def update_appointment(
 	appointment_id: UUID,
 	payload: ReschedulePayload,
-	response: Response,
 	supabase: SupabaseClient,
 	current_user: AuthenticatedUser = Depends(get_current_user),
-	google_access_token: str | None = Cookie(
-		default=None,
-		alias=GOOGLE_ACCESS_COOKIE,
-	),
-	google_access_token_expires_at: int | None = Cookie(
-		default=None,
-		alias=GOOGLE_ACCESS_EXPIRY_COOKIE,
-	),
 ) -> AppointmentResponse:
 	return await run_in_threadpool(
 		reschedule_appointment,
@@ -118,33 +96,18 @@ async def update_appointment(
 		payload,
 		supabase,
 		current_user,
-		google_access_token,
-		google_access_token_expires_at,
-		response,
 	)
 
 
 @router.delete("/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_appointment(
 	appointment_id: UUID,
-	response: Response,
 	supabase: SupabaseClient,
 	current_user: AuthenticatedUser = Depends(get_current_user),
-	google_access_token: str | None = Cookie(
-		default=None,
-		alias=GOOGLE_ACCESS_COOKIE,
-	),
-	google_access_token_expires_at: int | None = Cookie(
-		default=None,
-		alias=GOOGLE_ACCESS_EXPIRY_COOKIE,
-	),
 ) -> None:
 	await run_in_threadpool(
 		cancel_appointment,
 		str(appointment_id),
 		supabase,
 		current_user,
-		google_access_token,
-		google_access_token_expires_at,
-		response,
 	)

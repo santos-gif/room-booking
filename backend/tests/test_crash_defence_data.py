@@ -1,9 +1,7 @@
 import unittest
-from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from fastapi import Response
 from postgrest.exceptions import APIError
 from pydantic import ValidationError
 from support import next_weekday_start, pending_record, student_user
@@ -15,7 +13,7 @@ from app.api.v1.appointment.types import AppointmentPayload
 from app.api.v1.auth.exceptions import CredentialsException, UserNotFoundException
 from app.api.v1.auth.helper import get_current_user, save_onboarding
 from app.api.v1.auth.types import OnboardingPayload
-from app.google_api.exceptions import GoogleCredentialException, GoogleRefreshTokenException
+from app.google_api.exceptions import GoogleConfigurationException
 
 
 class ReconcileResilienceTests(unittest.TestCase):
@@ -47,11 +45,10 @@ class ReconcileResilienceTests(unittest.TestCase):
 
 
 class BookingRollbackTests(unittest.TestCase):
-	def test_missing_token_rolls_back_the_pending_row(self) -> None:
+	def test_unexpected_failure_rolls_back_the_pending_row(self) -> None:
 		for error in (
-			GoogleRefreshTokenException("none"),
-			GoogleCredentialException("bad"),
-			RuntimeError("transport error while refreshing the Google token"),
+			GoogleConfigurationException("unusable service account key"),
+			RuntimeError("transport error while reaching Google"),
 		):
 			start = next_weekday_start(9)
 			supabase = Mock()
@@ -63,11 +60,11 @@ class BookingRollbackTests(unittest.TestCase):
 				patch("app.api.v1.appointment.booking.room_calendar_id", return_value="room"),
 				patch("app.api.v1.appointment.booking_event.create_calendar_event", side_effect=error),
 				self.assertRaises(type(error)),
-				self.assertLogs(level="ERROR") if isinstance(error, RuntimeError) else nullcontext(),
+				self.assertLogs(level="ERROR"),
 			):
 				create_appointment(
 					AppointmentPayload(room_number=1, start_time=start),
-					supabase, student_user(), None, None, Response(),
+					supabase, student_user(),
 				)
 			self.assertEqual(supabase.rpc.call_args.args[0], "discard_own_pending_appointment")
 

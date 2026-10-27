@@ -2,17 +2,15 @@ import { describeBookingFailure } from './booking-errors';
 
 describe('describeBookingFailure (what the student reads after a failed booking)', () => {
 	it('explains a conflict or the 3-booking limit for a 409', () => {
-		const failure = describeBookingFailure({ status: 409 });
-		expect(failure.message).toContain('no longer available');
-		expect(failure.reconnect).toBe(false);
+		expect(describeBookingFailure({ status: 409 })).toContain('no longer available');
 	});
 
-	it('offers a Calendar reconnect only for a 401 and shows the server wording', () => {
+	it('shows the server wording when it sent a sentence', () => {
 		const failure = describeBookingFailure({
-			status: 401,
-			error: { detail: 'Reconnect Google Calendar.' },
+			status: 503,
+			error: { detail: 'The room calendar is not available right now.' },
 		});
-		expect(failure).toEqual({ message: 'Reconnect Google Calendar.', reconnect: true });
+		expect(failure).toBe('The room calendar is not available right now.');
 	});
 
 	it('never renders a non-string detail (FastAPI 422 sends a list), it falls back instead', () => {
@@ -20,19 +18,17 @@ describe('describeBookingFailure (what the student reads after a failed booking)
 			status: 422,
 			error: { detail: [{ msg: 'bad' }] },
 		});
-		expect(failure.message).toContain('Unable to complete the booking');
-		expect(failure.message).not.toContain('object');
+		expect(failure).toContain('Unable to complete the booking');
+		expect(failure).not.toContain('object');
 	});
 
 	it('falls back when there is no detail at all (network error, 500)', () => {
-		expect(describeBookingFailure({ status: 0 }).message).toContain(
-			'Unable to complete',
-		);
-		expect(describeBookingFailure({}).message).toContain('Unable to complete');
+		expect(describeBookingFailure({ status: 0 })).toContain('Unable to complete');
+		expect(describeBookingFailure({})).toContain('Unable to complete');
 	});
 
 	it('tells the student to check My bookings after a timeout, since the save may have worked', () => {
-		const message = describeBookingFailure({ name: 'TimeoutError' }).message;
+		const message = describeBookingFailure({ name: 'TimeoutError' });
 		expect(message).toContain('My bookings');
 		expect(message).not.toContain('preserved');
 	});

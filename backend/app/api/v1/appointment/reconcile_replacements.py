@@ -1,6 +1,5 @@
 import logging
 
-from fastapi import Response
 from supabase import Client
 
 from app.google_api.calendar_single_event import delete_calendar_event
@@ -42,15 +41,7 @@ def finish_replacements(supabase: Client, rows: list[object]) -> tuple[int, int]
 			if isinstance(old.get("google_calendar_id"), str) and isinstance(
 				old.get("google_event_id"), str
 			):
-				delete_calendar_event(
-					supabase,
-					user_id,
-					old["google_calendar_id"],
-					old["google_event_id"],
-					None,
-					None,
-					Response(),
-				)
+				delete_calendar_event(old["google_calendar_id"], old["google_event_id"])
 			appointment_queries.update_for_reconciliation(supabase, old_id, "cancelled", "synced")
 			old["status"] = "cancelled"
 			old["sync_status"] = "synced"

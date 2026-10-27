@@ -6,7 +6,7 @@ from support import next_weekday_start, student_user
 
 from app.api.v1.appointment import verify
 from app.api.v1.appointment.verify import verify_appointments
-from app.google_api.exceptions import GoogleAuthorizationException, GoogleCalendarOperationException
+from app.google_api.exceptions import GoogleCalendarOperationException
 
 V = "app.api.v1.appointment.verify"
 TITLE = "Discussion Room 1-Santos Mahasiswa (2510101051)"
@@ -73,7 +73,7 @@ class VerifyTests(unittest.TestCase):
 		cancel.assert_not_called()
 
 	def test_google_failures_keep_the_row(self) -> None:
-		for error in (GoogleCalendarOperationException(), GoogleAuthorizationException("x"), TimeoutError()):
+		for error in (GoogleCalendarOperationException(), TimeoutError()):
 			verify._last_verified.clear()  # each case is a fresh request
 			with self.subTest(error=type(error).__name__), self.assertLogs(V, level="ERROR"):
 				ids, _, _, cancel = run([row(1)], side_effect=error)
@@ -85,6 +85,7 @@ class VerifyTests(unittest.TestCase):
 			patch(f"{V}.appointment_queries.list_active", return_value=[row(1)]),
 			patch(f"{V}.appointment_queries.update_own_state", side_effect=RuntimeError("db")),
 			patch(f"{V}.get_calendar_event", return_value=None),
+			patch(f"{V}.calendar_is_reachable", return_value=True),
 			self.assertLogs(V, level="ERROR"),
 		):
 			result = verify_appointments(Mock(), student_user())
@@ -94,9 +95,9 @@ class VerifyTests(unittest.TestCase):
 		ids, _, update, _ = run([row(1)], event={"status": "confirmed", "summary": "Discussion Room 1"})
 		self.assertEqual(ids, ["id-1"])
 		args = update.call_args.args
-		self.assertEqual(args[3], "ev-1")
-		self.assertEqual(args[4]["summary"], TITLE)
-		self.assertIn("start", args[4])
+		self.assertEqual(args[1], "ev-1")
+		self.assertEqual(args[2]["summary"], TITLE)
+		self.assertIn("start", args[2])
 
 	def test_failed_title_update_still_lists_the_row(self) -> None:
 		with patch(f"{V}.update_calendar_event", side_effect=GoogleCalendarOperationException()):

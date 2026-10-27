@@ -14,7 +14,8 @@ Stack: Angular (frontend), FastAPI (backend), Supabase (database + auth), Google
 
 Backend — salin `backend/.env.example` menjadi `backend/.env.local`, lalu isi:
 `SUPABASE_URL`, `SUPABASE_KEY` (publishable key), `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
-`GOOGLE_CALENDAR_ROOM_1_ID`, `GOOGLE_CALENDAR_ROOM_2_ID`, `GOOGLE_TOKEN_ENCRYPTION_KEY` (Fernet key),
+`GOOGLE_CALENDAR_ROOM_1_ID`, `GOOGLE_CALENDAR_ROOM_2_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON` (isi file kunci
+service account, satu baris; bagikan kedua kalender ke emailnya dengan izin "Make changes to events"),
 `CRON_SECRET` dan `SUPABASE_BACKEND_RPC_SECRET` (acak, masing-masing minimal 32 karakter dan berbeda).
 Untuk lokal: `GOOGLE_REDIRECT_URI=http://localhost:3000/api/v1/google-auth/oauth2callback`,
 `FRONTEND_URL=http://localhost:3000`, `COOKIE_SECURE=false`.

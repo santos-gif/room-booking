@@ -4,7 +4,6 @@ import time
 from datetime import datetime, timezone
 from typing import TypeGuard
 
-from fastapi import Response
 from supabase import Client
 
 from app.api.v1.appointment.calendar_event import booker_name, build_calendar_event
@@ -47,12 +46,9 @@ def _on_cooldown(user_id: str) -> bool:
 def _check_row(supabase: Client, user: AuthenticatedUser, row: dict[str, object]) -> bool:
 	"""False only when Google definitively says the event is gone; raises on any doubt."""
 	appointment_id, room = row["id"], row["room_number"]
-	event = get_calendar_event(
-		supabase, user.id, str(row["google_calendar_id"]), str(row["google_event_id"]),
-		None, None, Response(),
-	)
-	if event is None and not calendar_is_reachable(supabase, user.id, str(row["google_calendar_id"])):
-		# A 404 can also mean the calendar itself is unknown or no longer shared with this user.
+	event = get_calendar_event(str(row["google_calendar_id"]), str(row["google_event_id"]))
+	if event is None and not calendar_is_reachable(str(row["google_calendar_id"])):
+		# A 404 can also mean the calendar itself is unknown or no longer shared with the service account.
 		logger.warning("Room calendar unreachable; keeping appointment %s.", appointment_id)
 		return True
 	if event is None or event.get("status") == "cancelled":
@@ -70,10 +66,7 @@ def _check_row(supabase: Client, user: AuthenticatedUser, row: dict[str, object]
 	body = build_calendar_event(str(appointment_id), int(str(room)), start, end, booker_name(user), user.nim)
 	if event.get("summary") != body["summary"]:
 		# Heals events made before the title change; update is a full replace, so send it all.
-		update_calendar_event(
-			supabase, user.id, str(row["google_calendar_id"]), str(row["google_event_id"]),
-			body, None, None, Response(),
-		)
+		update_calendar_event(str(row["google_calendar_id"]), str(row["google_event_id"]), body)
 	return True
 
 

@@ -1,23 +1,13 @@
 import logging
 
-from fastapi import APIRouter, Cookie, Depends, Query, Response
+from fastapi import APIRouter, Cookie, Query
 from fastapi.responses import RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
-from app.api.v1.auth.helper import get_current_user
-from app.api.v1.auth.types import AuthenticatedUser
 from app.api.v1.google_auth.callback import complete_google_oauth, failure_redirect
 from app.api.v1.google_auth.login import create_google_login_response
-from app.cookies import (
-	GOOGLE_ACCESS_COOKIE,
-	GOOGLE_ACCESS_EXPIRY_COOKIE,
-	OAUTH_STATE_COOKIE,
-	OAUTH_VERIFIER_COOKIE,
-)
-from app.database import PublicSupabaseClient, SupabaseClient
-from app.google_api.calendar_api import get_calendar_events
-from app.google_api.exceptions import GoogleRefreshConsentException
-from app.google_api.types import GoogleCalendarEvent
+from app.cookies import OAUTH_STATE_COOKIE, OAUTH_VERIFIER_COOKIE
+from app.database import PublicSupabaseClient
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/google-auth")
@@ -53,30 +43,7 @@ async def oauth2callback(
 			oauth_state=oauth_state,
 			oauth_verifier=oauth_verifier
 		)
-	except GoogleRefreshConsentException:
-		logger.warning("Google did not grant offline Calendar access.")
-		return failure_redirect("calendar_consent_required")
 	except Exception:
 		logger.exception("Google sign-in callback failed.")
 		return failure_redirect("google_exchange_failed")
 
-
-@router.get("/events", response_model=list[GoogleCalendarEvent])
-async def calendar_events(
-	response: Response,
-	supabase: SupabaseClient,
-	current_user: AuthenticatedUser = Depends(get_current_user),
-	google_access_token: str | None = Cookie(default=None, alias=GOOGLE_ACCESS_COOKIE),
-	google_access_token_expires_at: int | None = Cookie(
-		default=None,
-		alias=GOOGLE_ACCESS_EXPIRY_COOKIE,
-	),
-) -> list[GoogleCalendarEvent]:
-	return await run_in_threadpool(
-		get_calendar_events,
-		supabase,
-		current_user.id,
-		google_access_token,
-		google_access_token_expires_at,
-		response,
-	)

@@ -5,7 +5,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from uuid import NAMESPACE_URL, uuid5
 
-from fastapi import HTTPException, Response, status
+from fastapi import HTTPException, status
 from postgrest.exceptions import APIError
 from supabase import Client
 
@@ -15,11 +15,6 @@ from app.api.v1.appointment.types import ReconciliationResponse
 from app.config import settings
 from app.google_api.calendar_api import room_calendar_id
 from app.google_api.calendar_single_event import delete_calendar_event
-from app.google_api.exceptions import (
-	GoogleAuthorizationException,
-	GoogleCredentialException,
-	GoogleRefreshTokenException,
-)
 from app.queries import appointments as appointment_queries
 
 logger = logging.getLogger(__name__)
@@ -45,16 +40,12 @@ def _discard_stale_pending(supabase: Client, row: dict[str, object]) -> int:
 	# A row without a known age, or a young one, may belong to a request still running.
 	if created is None or datetime.now(timezone.utc) - created < PENDING_GRACE:
 		return 0
-	user_id = row.get("booker_id")
 	calendar_id = row.get("google_calendar_id")
 	event_id = row.get("google_event_id")
-	if isinstance(user_id, str) and isinstance(calendar_id, str) and isinstance(event_id, str):
-		# The reply to the original create may have been lost, so the event may exist.
-		try:
-			delete_calendar_event(supabase, user_id, calendar_id, event_id, None, None, Response())
-		except (GoogleAuthorizationException, GoogleRefreshTokenException, GoogleCredentialException):
-			# Access was revoked: the event cannot be reached, but the slot must not stay held for ever.
-			logger.warning("Could not reach the event of stale appointment %s; releasing the slot.", row.get("id"))
+	if isinstance(calendar_id, str) and isinstance(event_id, str):
+		# The reply to the original create may have been lost, so the event may exist. A Google failure
+		# keeps the row for the next run (RECONCILE_ERRORS), so no event is left behind.
+		delete_calendar_event(calendar_id, event_id)
 	seconds = int(PENDING_GRACE.total_seconds())
 	return 1 if appointment_queries.discard_stale_pending(supabase, row["id"], seconds) else 0
 

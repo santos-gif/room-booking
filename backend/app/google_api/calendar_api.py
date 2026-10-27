@@ -3,12 +3,9 @@ from typing import Any
 
 import google_auth_httplib2
 import httplib2
-from fastapi import Response
 from google.auth.exceptions import GoogleAuthError
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from pydantic import TypeAdapter
-from supabase import Client
 
 from app.config import settings
 from app.google_api.credentials import calendar_credentials
@@ -17,7 +14,6 @@ from app.google_api.exceptions import (
 	GoogleCalendarOperationException,
 	GoogleConfigurationException,
 )
-from app.google_api.types import GoogleCalendarEvent
 
 logger = logging.getLogger(__name__)
 CALENDAR_HTTP_TIMEOUT_SEC = 10
@@ -36,16 +32,8 @@ def room_calendar_id(room_number: int) -> str:
 	return calendar_id
 
 
-def calendar_service(
-	supabase: Client,
-	user_id: str,
-	access_token: str | None,
-	expires_at: int | None,
-	response: Response,
-) -> Any:
-	credentials = calendar_credentials(
-		supabase, user_id, access_token, expires_at, response
-	)
+def calendar_service() -> Any:
+	credentials = calendar_credentials()
 	# Google's default is 60 s per call, longer than a serverless request can afford.
 	http = google_auth_httplib2.AuthorizedHttp(
 		credentials, http=httplib2.Http(timeout=CALENDAR_HTTP_TIMEOUT_SEC)
@@ -54,7 +42,7 @@ def calendar_service(
 
 
 def _no_write_access(error: HttpError) -> bool:
-	"""404 (calendar unknown to this account) or a 403 that is not just Google's rate limit."""
+	"""404 (calendar unknown to the service account) or a 403 that is not just Google's rate limit."""
 	if error.resp.status == 404:
 		return True
 	text = str(error.content).lower()
@@ -62,16 +50,11 @@ def _no_write_access(error: HttpError) -> bool:
 
 
 def create_calendar_event(
-	supabase: Client,
-	user_id: str,
 	calendar_id: str,
 	event_id: str,
 	event_body: dict[str, Any],
-	access_token: str | None,
-	expires_at: int | None,
-	response: Response,
 ) -> dict[str, Any]:
-	service = calendar_service(supabase, user_id, access_token, expires_at, response)
+	service = calendar_service()
 	body = {**event_body, "id": event_id}
 	# The caller-chosen ID makes insert idempotent: after a dropped reply, get() tells us
 	# whether Google processed it. One retry only; a second unknown outcome is a failure.
@@ -104,22 +87,3 @@ def create_calendar_event(
 		return existing
 	raise GoogleCalendarOperationException()
 
-
-def get_calendar_events(
-	supabase: Client,
-	user_id: str,
-	access_token: str | None,
-	expires_at: int | None,
-	response: Response,
-) -> list[GoogleCalendarEvent]:
-	service = calendar_service(
-		supabase, user_id, access_token, expires_at, response
-	)
-	events: list[dict[str, Any]] = []
-	for room_number in (1, 2):
-		result: dict[str, Any] = service.events().list(
-			calendarId=room_calendar_id(room_number),
-			maxResults=250,
-		).execute()
-		events.extend(result.get("items", []))
-	return TypeAdapter(list[GoogleCalendarEvent]).validate_python(events)

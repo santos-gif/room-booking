@@ -3,7 +3,6 @@ from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from fastapi import Response
 from support import next_weekday_start, pending_record, student_user
 
 from app.api.v1.appointment.booking import create_appointment
@@ -27,7 +26,7 @@ class CalendarTitleTests(unittest.TestCase):
 			patch("app.api.v1.appointment.booking_event.create_calendar_event") as create,
 		):
 			create_appointment(
-				AppointmentPayload(room_number=2, start_time=start), supabase, user, None, None, Response()
+				AppointmentPayload(room_number=2, start_time=start), supabase, user
 			)
 		return create
 
@@ -39,12 +38,12 @@ class CalendarTitleTests(unittest.TestCase):
 	def test_booking_sends_the_title_to_google(self) -> None:
 		create = self._book(student_user())
 		self.assertEqual(
-			create.call_args.args[4]["summary"], "Discussion Room 2-Santos Mahasiswa (2510101051)"
+			create.call_args.args[2]["summary"], "Discussion Room 2-Santos Mahasiswa (2510101051)"
 		)
 
 	def test_blank_name_falls_back_to_email_local_part(self) -> None:
 		create = self._book(student_user().model_copy(update={"name": "   "}))
-		self.assertEqual(create.call_args.args[4]["summary"], "Discussion Room 2-student (2510101051)")
+		self.assertEqual(create.call_args.args[2]["summary"], "Discussion Room 2-student (2510101051)")
 
 	def test_missing_nim_is_rejected_before_any_insert(self) -> None:
 		user = student_user().model_copy(update={"nim": None})
@@ -52,7 +51,7 @@ class CalendarTitleTests(unittest.TestCase):
 		with self.assertRaises(ProfileIncompleteException) as caught:
 			create_appointment(
 				AppointmentPayload(room_number=1, start_time=next_weekday_start(9)),
-				supabase, user, None, None, Response(),
+				supabase, user,
 			)
 		self.assertEqual(caught.exception.status_code, 403)
 		self.assertEqual(caught.exception.detail, "Complete your profile (NIM) before booking.")
@@ -80,7 +79,7 @@ class CalendarTitleTests(unittest.TestCase):
 			patch(base + "appointment_queries"),
 		):
 			self.assertEqual(sync_row(Mock(), row), "synchronized")
-		self.assertEqual(update.call_args.args[4]["summary"], "Discussion Room 1-Santos (123)")
+		self.assertEqual(update.call_args.args[2]["summary"], "Discussion Room 1-Santos (123)")
 		self.assertEqual(build_calendar_event("i", 2, start, start)["summary"], "Discussion Room 2")
 
 

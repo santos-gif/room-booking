@@ -2,7 +2,6 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { AuthService } from '../../../core/services/auth-service';
 import { Appointment } from '../../../core/types/appointment';
 import { visibleTimer } from '../../../shared/helpers/visible-timer';
 import { AppHeader } from '../../../shared/components/app-header/app-header';
@@ -11,7 +10,6 @@ import { BookingCard } from '../components/booking-card/booking-card';
 import { EmptyState } from '../components/empty-state/empty-state';
 import { MyBookingsService } from '../service/my-bookings.service';
 import { DIALOG_WIDTH } from '../../../shared/helpers/dialog-width';
-import { ApiFailure, serverDetail } from '../../../core/utils/api-failure';
 
 const CANCEL_FAILED = 'Unable to cancel this appointment. It has not been removed.';
 // A tick every 35 s, just over the backend's 30 s check cooldown, so every poll really asks Google.
@@ -29,12 +27,10 @@ const STALE_MS = 30_000;
 })
 export class MyBookingsPage {
 	private readonly bookings = inject(MyBookingsService);
-	private readonly auth = inject(AuthService);
 	private readonly router = inject(Router);
 	private readonly dialog = inject(MatDialog);
 	private readonly cancelError = signal('');
 	readonly errorMessage = computed(() => this.cancelError() || this.bookings.error());
-	readonly calendarReconnectNeeded = signal(false);
 	readonly busyId = signal('');
 	// False until the first answer: the list panel shows placeholders, not the empty message.
 	readonly loaded = this.bookings.loaded;
@@ -81,22 +77,12 @@ export class MyBookingsPage {
 	private cancel(appointment: Appointment): void {
 		this.busyId.set(appointment.id);
 		this.cancelError.set('');
-		this.calendarReconnectNeeded.set(false);
 		this.bookings.cancel(appointment.id).subscribe({
 			next: () => this.busyId.set(''),
-			error: (error: ApiFailure) => {
-				const reconnect = error.status === 401;
+			error: () => {
 				this.busyId.set('');
-				this.calendarReconnectNeeded.set(reconnect);
-				// The server's text is only used for the Google-token case, where it says what to do.
-				this.cancelError.set(
-					(reconnect ? serverDetail(error) : null) ?? CANCEL_FAILED,
-				);
+				this.cancelError.set(CANCEL_FAILED);
 			},
 		});
-	}
-
-	reconnectCalendar(): void {
-		this.auth.login();
 	}
 }

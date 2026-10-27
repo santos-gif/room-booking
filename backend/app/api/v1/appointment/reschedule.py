@@ -2,7 +2,6 @@
 import logging
 from datetime import datetime, timezone
 
-from fastapi import Response
 from supabase import Client
 
 from app.api.v1.appointment.booking import create_appointment
@@ -20,9 +19,6 @@ def reschedule_appointment(
 	payload: ReschedulePayload,
 	supabase: Client,
 	current_user: AuthenticatedUser,
-	access_token: str | None,
-	expires_at: int | None,
-	response: Response,
 ) -> AppointmentResponse:
 	old_appointment = get_own_appointment(supabase, appointment_id, current_user)
 	local_start = validate_slot(payload.start_time, payload.room_number)
@@ -44,14 +40,11 @@ def reschedule_appointment(
 		payload,
 		supabase,
 		current_user,
-		access_token,
-		expires_at,
-		response,
 		replaces_appointment_id=appointment_id,
 	)
 
 	def cancel(booking_id: str) -> None:
-		cancel_appointment(booking_id, supabase, current_user, access_token, expires_at, response)
+		cancel_appointment(booking_id, supabase, current_user)
 
 	try:
 		cancel(appointment_id)

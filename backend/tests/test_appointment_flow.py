@@ -3,8 +3,6 @@ from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from fastapi import Response
-
 from app.api.v1.appointment.booking import create_appointment
 from app.api.v1.appointment.cancel import cancel_appointment
 from app.api.v1.appointment.types import AppointmentPayload, JAKARTA_TZ
@@ -33,9 +31,6 @@ class AppointmentFlowTests(unittest.TestCase):
 			"appointment-id",
 			supabase,
 			student_user(),
-			None,
-			None,
-			Response(),
 		)
 
 		# The state change is the restricted RPC, then the cancelled row is deleted right away.
@@ -73,7 +68,6 @@ class AppointmentFlowTests(unittest.TestCase):
 			data=[confirmed_record]
 		)
 		payload = AppointmentPayload(room_number=1, start_time=start)
-		response = Response()
 		with (
 			patch("app.api.v1.appointment.booking.uuid4", side_effect=[
 				appointment_id,
@@ -92,9 +86,6 @@ class AppointmentFlowTests(unittest.TestCase):
 				payload,
 				supabase,
 				student_user(),
-				"access-token",
-				None,
-				response,
 			)
 
 		self.assertEqual(result.status, "confirmed")
@@ -116,7 +107,7 @@ class AppointmentFlowTests(unittest.TestCase):
 			),
 			start,
 		)
-		event_body = create_event.call_args.args[4]
+		event_body = create_event.call_args.args[2]
 		self.assertEqual(event_body["start"]["timeZone"], "Asia/Jakarta")
 		self.assertEqual(event_body["start"]["dateTime"], start.isoformat())
 		self.assertEqual(

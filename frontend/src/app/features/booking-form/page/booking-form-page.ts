@@ -1,6 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../../../core/services/auth-service';
 import { nextBookableDay } from '../../../shared/helpers/jakarta-today';
 import { AppHeader } from '../../../shared/components/app-header/app-header';
 import { BookingControls } from '../components/booking-controls/booking-controls';
@@ -23,7 +22,6 @@ import { AvailableSlot, BookingPayload } from '../types/booking-form';
 })
 export class BookingFormPage {
 	private readonly api = inject(BookingFormService);
-	protected readonly auth = inject(AuthService);
 	private readonly router = inject(Router);
 	// Set when arriving from "Update" on My bookings: that booking is moved instead of a new one made.
 	private readonly rescheduleId =
@@ -64,7 +62,6 @@ export class BookingFormPage {
 			this.formError(),
 	);
 	readonly resultMessage = signal('');
-	readonly calendarReconnectNeeded = signal(false);
 	readonly submitting = signal(false);
 	private readonly saved = signal(false);
 	readonly currentStart = this.target.currentStart;
@@ -104,7 +101,6 @@ export class BookingFormPage {
 		}
 		this.submitting.set(true);
 		this.formError.set('');
-		this.calendarReconnectNeeded.set(false);
 		const payload: BookingPayload = {
 			room_number: this.roomNumber(),
 			start_time: slot.start_time,
@@ -122,9 +118,7 @@ export class BookingFormPage {
 				);
 			},
 			error: (error) => {
-				const failure = describeBookingFailure(error);
-				this.calendarReconnectNeeded.set(failure.reconnect);
-				this.finish(failure.message);
+				this.finish(describeBookingFailure(error));
 			},
 		});
 	}

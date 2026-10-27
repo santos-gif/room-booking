@@ -9,8 +9,6 @@ import { AuthenticatedUser } from '../../../core/types/auth';
 const AUTH_ERRORS: Record<string, string> = {
 	google_access_denied: 'Google sign-in was cancelled.',
 	google_exchange_failed: 'Google sign-in failed. Please try again.',
-	calendar_consent_required:
-		'Grant Google Calendar access to finish connecting your account.',
 	session_expired: 'Your session expired. Please sign in again.',
 	server_unavailable: 'The server is not reachable right now. Please try again in a moment.',
 };

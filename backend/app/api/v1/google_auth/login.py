@@ -11,9 +11,8 @@ def create_google_login_response() -> RedirectResponse:
 	state = secrets.token_urlsafe(32)
 	flow = create_flow(state, code_verifier)
 	authorization_url, _ = flow.authorization_url(
-		access_type="offline",
-		prompt="select_account consent",
-		include_granted_scopes="true",
+		access_type="online",  # identity only: no refresh token is wanted or stored
+		prompt="select_account",
 		code_challenge_method="S256",
 	)
 	response = RedirectResponse(authorization_url, status_code=302)

@@ -101,26 +101,6 @@ describe('authRefreshInterceptor', () => {
 		expect(router.navigateByUrl).toHaveBeenCalledWith('/');
 	});
 
-	it('asks to reconnect Google, without a pointless session refresh, when Google rejects the Calendar token', () => {
-		document.cookie = 'csrf_token=abc';
-		const login = vi
-			.spyOn(TestBed.inject(AuthService), 'login')
-			.mockImplementation(() => undefined);
-		client.post('/api/appointments', {}).subscribe({ error: () => undefined });
-
-		http.expectOne('/api/appointments').flush('reconnect', {
-			...unauthorized,
-			headers: { 'X-Reconnect-Google': '1' },
-		});
-
-		expect(dialog.open.mock.calls[0][1].data).toEqual({ reconnect: true });
-		http.expectNone((r) => r.url.endsWith('/auth/refresh'));
-		expect(login).not.toHaveBeenCalled();
-		closed.next();
-		expect(login).toHaveBeenCalledTimes(1);
-		expect(router.navigateByUrl).not.toHaveBeenCalled();
-	});
-
 	it('opens only one notice while one is already showing', () => {
 		dialog.getDialogById.mockReturnValue({});
 		rejected('/api/appointments');

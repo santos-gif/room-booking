@@ -1,7 +1,19 @@
 /* Global styles, split by topic (order matters: tokens first, then base, then components). */
+/* The date picker pops up in the CDK overlay layer and takes its colours from a Material theme; without these two
+   the calendar is drawn as loose, unpositioned text (it has no panel, background or placement). */
+@import '@angular/cdk/overlay-prebuilt.css';
+@import '@angular/material/prebuilt-themes/azure-blue.css';
 @import './styles/tokens.css';
 @import './styles/base.css';
 @import './styles/buttons.css';
 @import './styles/forms-and-notices.css';
 @import './styles/dialog.css';
 @import './styles/loading.css';
+
+/* Material's own colours follow the app palette (the calendar's selected day, today ring, focus). */
+html {
+  --mat-sys-primary: var(--green-900);
+  --mat-sys-on-primary: #fff;
+  --mat-sys-primary-container: var(--green-100);
+  --mat-sys-on-primary-container: var(--green-900);
+}

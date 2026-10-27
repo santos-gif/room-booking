@@ -36,7 +36,7 @@ Terakhir dijalankan: 2026-10-21.
 | Memuat data | Skeleton, "Loading availability…", progress bar antar halaman | Tampilan (mock) |
 | Server tidak terjangkau / error 5xx | Dialog "An Error Occurred" | Tampilan (mock) |
 | Slot sudah diambil / batas 3 booking | Pesan 409 di dialog hasil | Unit test backend |
-| Token Google kedaluwarsa | Tombol "Reconnect Google Calendar" | Kode saja, belum diuji langsung |
+| Kalender ruangan tidak bisa ditulis service account | Pesan "room calendar is not available" (403) | Unit test backend |
 
 ## Keterbatasan yang diketahui
 
@@ -54,11 +54,10 @@ Terakhir dijalankan: 2026-10-21.
 
 Hasil audit manual (review kode, fuzzing 4.500+ request, pengujian dari luar terhadap situs produksi). Tidak ada pemindai exploit otomatis (Strix) yang dijalankan.
 
-- **Token Google mahasiswa punya akses tulis ke kalender ruangan.** Karena event dibuat dengan token masing-masing mahasiswa, seorang mahasiswa yang berniat jahat bisa menghapus event mahasiswa lain lewat API Google (booking korban lalu dibatalkan otomatis saat dicek). Perbaikan sebenarnya: satu kredensial pemilik (service account) yang menulis event, dan mahasiswa tidak diberi akses kalender. Ini perubahan arsitektur untuk versi berikutnya.
+- **Satu kredensial service account menulis ke kedua kalender ruangan.** Mahasiswa tidak lagi memegang akses Calendar, tetapi jika kunci `GOOGLE_SERVICE_ACCOUNT_JSON` bocor, penyerang bisa mengubah event di kedua kalender itu (hanya itu). Putar kunci jika dicurigai bocor.
 - **NIM tidak diverifikasi terhadap email.** Mahasiswa bisa mengisi/mengubah NIM-nya sendiri, termasuk NIM orang lain yang belum terdaftar (NIM unik sudah dipaksa database).
 - **Rate limit hanya untuk `/api/v1/auth/` dan `/api/v1/google-auth/`** (paket Hobby hanya mengizinkan satu aturan). Endpoint booking tidak dibatasi; pemeriksaan Google (`verify=true`) dibatasi per instance saja, jadi pengguna jahat bisa memperbanyak panggilan ke kuota Google.
 - **Insert langsung ke Supabase** dengan kunci publik bisa menahan satu slot ekstra (maksimal 4 baris aktif) sampai cron harian membersihkannya.
-- Token akses Google di cookie tidak diikat ke pengguna (risiko rendah, butuh akses ke akun Google lain).
 - Jika pembatalan sebuah reschedule gagal tepat setelah event lama dihapus, mahasiswa bisa kehilangan kedua booking (sangat jarang).
 - Pembaruan otomatis My bookings (setiap ~35 detik) membuat satu permintaan per tab terbuka; belum ada koordinasi antar tab.
 - **Login lain di Supabase:** metode login Email di Supabase aktif dan pendaftaran terbuka. Matikan (Authentication > Sign In / Providers > Email) agar satu-satunya jalan masuk adalah Google (yang memeriksa domain, `hd` dan izin Calendar).

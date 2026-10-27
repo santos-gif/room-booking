@@ -2,7 +2,6 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from fastapi import Response
 from support import next_weekday_start, pending_record, student_user
 
 from app.api.v1.appointment.booking import create_appointment
@@ -47,9 +46,6 @@ class AppointmentFlowTests(unittest.TestCase):
 				AppointmentPayload(room_number=1, start_time=start),
 				supabase,
 				student_user(),
-				None,
-				None,
-				Response(),
 			)
 
 		return supabase
@@ -76,11 +72,9 @@ class AppointmentFlowTests(unittest.TestCase):
 
 
 class CalendarAccessTests(unittest.TestCase):
-	"""A student whose Google account cannot write to the room calendar gets an actionable message."""
+	"""When the service account cannot write to a room calendar, the student is told it is unavailable."""
 
 	def _book(self, effect: Exception):
-		from fastapi import Response as FastResponse
-
 		start = next_weekday_start(9)
 		supabase = Mock()
 		supabase.table.return_value.insert.return_value.execute.return_value = SimpleNamespace(
@@ -94,17 +88,17 @@ class CalendarAccessTests(unittest.TestCase):
 			self.assertLogs("app.api.v1.appointment.booking", level="ERROR"),
 		):
 			create_appointment(
-				AppointmentPayload(room_number=1, start_time=start), supabase, student_user(), None, None, FastResponse()
+				AppointmentPayload(room_number=1, start_time=start), supabase, student_user()
 			)
 
-	def test_no_write_access_says_to_ask_for_the_calendar_to_be_shared(self) -> None:
+	def test_no_write_access_says_the_calendar_is_unavailable(self) -> None:
 		from app.api.v1.appointment.exceptions import CalendarAccessException
 		from app.google_api.exceptions import GoogleCalendarAccessException
 
 		with self.assertRaises(CalendarAccessException) as caught:
 			self._book(GoogleCalendarAccessException())
 		self.assertEqual(caught.exception.status_code, 403)
-		self.assertIn("share the calendar", caught.exception.detail)
+		self.assertIn("not available", caught.exception.detail)
 
 	def test_other_calendar_failures_keep_the_generic_message(self) -> None:
 		with self.assertRaises(CalendarSyncException):

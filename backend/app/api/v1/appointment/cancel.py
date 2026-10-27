@@ -1,7 +1,6 @@
 """Cancelling a booking: its Google event first, then the database row, which is deleted right away."""
 import logging
 
-from fastapi import Response
 from postgrest.exceptions import APIError
 from supabase import Client
 
@@ -12,10 +11,7 @@ from app.api.v1.appointment.exceptions import (
 )
 from app.api.v1.auth.types import AuthenticatedUser
 from app.google_api.calendar_single_event import delete_calendar_event
-from app.google_api.exceptions import (
-	GoogleAuthorizationException,
-	GoogleCalendarOperationException,
-)
+from app.google_api.exceptions import GoogleCalendarOperationException
 from app.queries import appointments as appointment_queries
 
 logger = logging.getLogger(__name__)
@@ -36,26 +32,13 @@ def cancel_appointment(
 	appointment_id: str,
 	supabase: Client,
 	current_user: AuthenticatedUser,
-	access_token: str | None,
-	expires_at: int | None,
-	response: Response,
 ) -> None:
 	appointment = get_own_appointment(supabase, appointment_id, current_user)
 	calendar_id = appointment.get("google_calendar_id")
 	event_id = appointment.get("google_event_id")
 	if isinstance(calendar_id, str) and isinstance(event_id, str):
 		try:
-			delete_calendar_event(
-				supabase,
-				current_user.id,
-				calendar_id,
-				event_id,
-				access_token,
-				expires_at,
-				response,
-			)
-		except GoogleAuthorizationException:
-			raise
+			delete_calendar_event(calendar_id, event_id)
 		except GoogleCalendarOperationException as error:
 			logger.exception("Could not delete the room calendar event.")
 			raise CalendarSyncException() from error

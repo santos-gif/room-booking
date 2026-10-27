@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from app.api.v1.google_auth.callback import complete_google_oauth
 from app.api.v1.google_auth.router import login, oauth2callback
 from app.config import settings
-from app.google_api.exceptions import GoogleCredentialException, GoogleRefreshConsentException
+from app.google_api.exceptions import GoogleCredentialException
 from app.main import app
 
 
@@ -45,9 +45,9 @@ class CallbackRedirectTests(unittest.IsolatedAsyncioTestCase):
 		for claims, code in cases:
 			self.assertIn(f"auth_error={code}", self._run(claims).headers["location"], claims)
 
-	def test_unticked_calendar_scope_warning_needs_consent(self) -> None:
+	def test_changed_scope_warning_is_an_exchange_failure(self) -> None:
 		response = self._run(fetch_error=Warning("Scope has changed"))
-		self.assertIn("auth_error=calendar_consent_required", response.headers["location"])
+		self.assertIn("auth_error=google_exchange_failed", response.headers["location"])
 
 	async def _callback(self, effect):
 		with (
@@ -72,10 +72,6 @@ class CallbackRedirectTests(unittest.IsolatedAsyncioTestCase):
 		self.assertEqual(response.status_code, 303)
 		self.assertEqual(response.headers["location"], "https://frontend.example?auth_error=server_unavailable")
 		self.assertNotIn("GOOGLE_CLIENT", response.headers["location"])
-
-	async def test_missing_refresh_consent_redirects(self) -> None:
-		response = await self._callback(GoogleRefreshConsentException())
-		self.assertIn("auth_error=calendar_consent_required", response.headers["location"])
 
 
 class AppHandlerTests(unittest.TestCase):

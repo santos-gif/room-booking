@@ -4,6 +4,7 @@ from unittest.mock import patch, sentinel
 from fastapi import HTTPException
 
 from app.api.v1.appointment.router import reconcile_calendar
+from app.google_api.exceptions import GoogleConfigurationException
 from app.config import (
 	settings,
 	validate_integration_configuration,
@@ -59,7 +60,7 @@ class ConfigTests(unittest.IsolatedAsyncioTestCase):
 			patch.object(settings, "GOOGLE_CALENDAR_ROOM_1_ID", ""),
 			patch.object(settings, "GOOGLE_CALENDAR_ROOM_2_ID", ""),
 			patch.object(settings, "GOOGLE_CALENDAR_ID", "legacy-calendar"),
-			patch.object(settings, "GOOGLE_TOKEN_ENCRYPTION_KEY", ""),
+			patch.object(settings, "GOOGLE_SERVICE_ACCOUNT_JSON", ""),
 		):
 			with self.assertRaises(RuntimeError) as error:
 				validate_integration_configuration()
@@ -68,7 +69,7 @@ class ConfigTests(unittest.IsolatedAsyncioTestCase):
 			self.assertIn("GOOGLE_CALENDAR_ROOM_2_ID", message)
 			self.assertIn("GOOGLE_CALENDAR_ID is not used", message)
 
-	def test_integration_configuration_rejects_invalid_fernet_key(self) -> None:
+	def test_integration_configuration_rejects_an_unusable_service_account_key(self) -> None:
 		with (
 			patch.object(settings, "SUPABASE_URL", "https://example.supabase.co"),
 			patch.object(settings, "SUPABASE_KEY", "test-key"),
@@ -77,8 +78,8 @@ class ConfigTests(unittest.IsolatedAsyncioTestCase):
 			patch.object(settings, "GOOGLE_REDIRECT_URI", "http://localhost/callback"),
 			patch.object(settings, "GOOGLE_CALENDAR_ROOM_1_ID", "room-1"),
 			patch.object(settings, "GOOGLE_CALENDAR_ROOM_2_ID", "room-2"),
-			patch.object(settings, "GOOGLE_TOKEN_ENCRYPTION_KEY", "invalid"),
+			patch.object(settings, "GOOGLE_SERVICE_ACCOUNT_JSON", "not json"),
 			patch.object(settings, "SUPABASE_BACKEND_RPC_SECRET", "rpc-secret"),
 		):
-			with self.assertRaisesRegex(RuntimeError, "valid Fernet key"):
+			with self.assertRaises(GoogleConfigurationException):
 				validate_integration_configuration()

@@ -67,8 +67,6 @@
   @if (resultMessage()) {
     <app-result-dialog
       [message]="resultMessage()"
-      [reconnectNeeded]="calendarReconnectNeeded()"
-      (reconnect)="auth.login()"
       (closed)="closeResult()"
     />
   }

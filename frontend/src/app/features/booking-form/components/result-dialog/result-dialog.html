@@ -10,11 +10,6 @@
   >
     <p>{{ message() }}</p>
     <div class="actions">
-      @if (reconnectNeeded()) {
-        <button type="button" class="btn" (click)="reconnect.emit()">
-          Reconnect Google Calendar
-        </button>
-      }
       <button type="button" class="btn btn-primary" cdkFocusInitial (click)="closed.emit()">
         Continue
       </button>

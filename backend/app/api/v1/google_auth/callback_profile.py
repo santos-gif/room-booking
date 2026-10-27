@@ -1,21 +1,13 @@
-"""After Google says who the student is: their Supabase session, their profile, their Calendar token."""
+"""After Google says who the student is: their Supabase session and their profile."""
 import logging
 
-from google.oauth2.credentials import Credentials
 from postgrest.exceptions import APIError
 from supabase import Client
 from supabase_auth.errors import AuthError
 from supabase_auth.types import Session
 
 from app.api.v1.google_auth.callback_identity import SignInRefused
-from app.config import settings
-from app.google_api.exceptions import (
-	GoogleCredentialException,
-	GoogleIdentityException,
-	GoogleRefreshConsentException,
-)
-from app.google_api.token_crypto import encrypt_refresh_token
-from app.queries.google_tokens import load_refresh_token, store_refresh_token
+from app.google_api.exceptions import GoogleCredentialException, GoogleIdentityException
 
 logger = logging.getLogger(__name__)
 
@@ -51,27 +43,3 @@ def profile_id_for(user_supabase: Client, name: str | None, email: str) -> str:
 		raise GoogleIdentityException("Could not load the application user profile.")
 	return profile_id
 
-
-def save_refresh_token(user_supabase: Client, profile_id: str, credentials: Credentials) -> None:
-	"""Keeps the (encrypted) Google refresh token the backend needs to write Calendar events later."""
-	try:
-		encrypted = _refresh_token_to_store(user_supabase, profile_id, credentials)
-	except GoogleRefreshConsentException as e:
-		raise SignInRefused("calendar_consent_required") from e
-	store_refresh_token(user_supabase, encrypted)
-
-
-def _refresh_token_to_store(supabase: Client, profile_id: str, credentials: Credentials) -> str:
-	"""Google only sends a refresh token on a fresh consent; otherwise the stored one stays in use."""
-	if credentials.refresh_token:
-		return encrypt_refresh_token(credentials.refresh_token)
-	stored = load_refresh_token(supabase, profile_id, _backend_rpc_secret())
-	if stored is None:
-		raise GoogleRefreshConsentException()
-	return stored
-
-
-def _backend_rpc_secret() -> str:
-	if not settings.SUPABASE_BACKEND_RPC_SECRET:
-		raise GoogleCredentialException("Backend Supabase RPC authorization is not configured.")
-	return settings.SUPABASE_BACKEND_RPC_SECRET

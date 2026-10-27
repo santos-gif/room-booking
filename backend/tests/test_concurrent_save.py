@@ -2,7 +2,6 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from fastapi import Response
 from postgrest.exceptions import APIError
 from support import next_weekday_start, pending_record, student_user
 
@@ -29,7 +28,7 @@ class ConcurrentSaveTests(unittest.TestCase):
 		):
 			create_appointment(
 				AppointmentPayload(room_number=1, start_time=start),
-				supabase, user or student_user(), None, None, Response(),
+				supabase, user or student_user(),
 			)
 
 	def _supabase(self, *inserts: object) -> Mock:
@@ -85,6 +84,6 @@ class ConcurrentSaveTests(unittest.TestCase):
 			):
 				create_appointment(
 					AppointmentPayload(room_number=1, start_time=start),
-					supabase, student_user(), None, None, Response(), replaces_appointment_id="old",
+					supabase, student_user(), replaces_appointment_id="old",
 				)
 		create.assert_not_called()

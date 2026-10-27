@@ -1,6 +1,4 @@
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class GoogleIdentity(BaseModel):
@@ -11,19 +9,4 @@ class GoogleIdentity(BaseModel):
 	# Workspace domain Google vouches for; absent for ordinary Google accounts.
 	hd: str | None = None
 
-
-class GoogleCalendarEvent(BaseModel):
-	model_config = ConfigDict(extra="allow")
-
-	id: str | None = None
-	summary: str | None = None
-	description: str | None = None
-	location: str | None = None
-	htmlLink: str | None = None
-	start: dict[str, Any] | None = None
-	end: dict[str, Any] | None = None
-
-__all__ = [
-	"GoogleCalendarEvent",
-	"GoogleIdentity",
-]
+__all__ = ["GoogleIdentity"]

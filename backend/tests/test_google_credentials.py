@@ -1,98 +1,48 @@
+import json
 import unittest
-from datetime import datetime, timedelta, timezone
-from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-from fastapi import Response
-from google.auth.exceptions import RefreshError, TransportError
-from google.auth.transport.requests import Request as GoogleAuthRequest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
-from app.google_api.credentials import (
-	REFRESH_TIMEOUT_SEC,
-	_TimedRequest,
-	calendar_credentials,
-)
-from app.google_api.exceptions import (
-	GoogleAuthorizationException,
-	GoogleUnavailableException,
-)
-
-DEAD = RefreshError("invalid_grant: Token has been expired or revoked.", {"error": "invalid_grant"})
-GOOGLE_DOWN = RefreshError("backend_error: try later", {"error": "backend_error"})
+from app.config import settings
+from app.google_api.credentials import CALENDAR_SCOPES, calendar_credentials
+from app.google_api.exceptions import GoogleConfigurationException
 
 
-def _supabase() -> Mock:
-	supabase = Mock()
-	supabase.rpc.return_value.execute.return_value = SimpleNamespace(
-		data=[{"refresh_token": "encrypted-token", "is_valid": True}]
-	)
-	return supabase
+def _service_account_json() -> str:
+	key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+	pem = key.private_bytes(
+		serialization.Encoding.PEM,
+		serialization.PrivateFormat.PKCS8,
+		serialization.NoEncryption(),
+	).decode()
+	return json.dumps({
+		"type": "service_account",
+		"client_email": "rooms@example-project.iam.gserviceaccount.com",
+		"private_key": pem,
+		"token_uri": "https://oauth2.googleapis.com/token",
+	})
 
 
-def _credentials(supabase: Mock, refresh) -> object:
-	with (
-		patch("app.google_api.credentials.decrypt_refresh_token", return_value="refresh-token"),
-		patch("app.google_api.credentials.Credentials.refresh", new=refresh),
-	):
-		return calendar_credentials(supabase, "user-id", None, None, Response())
+class ServiceAccountCredentialsTests(unittest.TestCase):
+	def setUp(self) -> None:
+		calendar_credentials.cache_clear()
+		self.addCleanup(calendar_credentials.cache_clear)
 
+	def test_the_configured_key_becomes_calendar_only_credentials(self) -> None:
+		with patch.object(settings, "GOOGLE_SERVICE_ACCOUNT_JSON", _service_account_json()):
+			credentials = calendar_credentials()
+			self.assertIs(calendar_credentials(), credentials)  # cached for the warm instance
+		self.assertEqual(credentials.service_account_email, "rooms@example-project.iam.gserviceaccount.com")
+		self.assertEqual(list(credentials.scopes), CALENDAR_SCOPES)
 
-def _invalidated(supabase: Mock) -> bool:
-	return any(call.args[0] == "invalidate_google_refresh_token" for call in supabase.rpc.call_args_list)
-
-
-class RefreshVerdictTests(unittest.TestCase):
-	def test_only_invalid_grant_kills_the_stored_token(self) -> None:
-		supabase = _supabase()
-		with self.assertRaises(GoogleAuthorizationException):
-			_credentials(supabase, Mock(side_effect=DEAD))
-		self.assertTrue(_invalidated(supabase))
-
-	def test_google_errors_other_than_invalid_grant_keep_the_token(self) -> None:
-		for failure in (GOOGLE_DOWN, TransportError("timed out")):
-			with self.subTest(failure=type(failure).__name__):
-				supabase = _supabase()
-				refresh = Mock(side_effect=failure)
-				with self.assertRaises(GoogleUnavailableException) as caught:
-					_credentials(supabase, refresh)
-				self.assertEqual(caught.exception.status_code, 503)
-				self.assertEqual(refresh.call_count, 2)
-				self.assertFalse(_invalidated(supabase))
-
-	def test_one_hiccup_is_retried_and_the_booking_goes_on(self) -> None:
-		supabase = _supabase()
-		calls = []
-
-		def refresh(self, request) -> None:
-			calls.append(request)
-			if len(calls) == 1:
-				raise TransportError("timed out")
-			self.token = "fresh-access-token"
-			self.expiry = datetime.now(timezone.utc) + timedelta(hours=1)
-
-		credentials = _credentials(supabase, refresh)
-		self.assertEqual(credentials.token, "fresh-access-token")
-		self.assertEqual(len(calls), 2)
-		self.assertFalse(_invalidated(supabase))
-
-	def test_google_401s_are_marked_so_the_frontend_forces_a_reconnect(self) -> None:
-		with self.assertRaises(GoogleAuthorizationException) as caught:
-			_credentials(_supabase(), Mock(side_effect=DEAD))
-		self.assertEqual(caught.exception.status_code, 401)
-		self.assertEqual(caught.exception.headers, {"X-Reconnect-Google": "1"})
-
-	def test_a_dead_token_is_not_retried(self) -> None:
-		refresh = Mock(side_effect=DEAD)
-		with self.assertRaises(GoogleAuthorizationException):
-			_credentials(_supabase(), refresh)
-		self.assertEqual(refresh.call_count, 1)
-
-
-class RefreshTimeoutTests(unittest.TestCase):
-	def test_every_token_call_carries_the_short_timeout(self) -> None:
-		with patch.object(GoogleAuthRequest, "__call__", return_value="ok") as send:
-			_TimedRequest()("https://oauth2.googleapis.com/token", method="POST")
-		self.assertEqual(send.call_args.kwargs["timeout"], REFRESH_TIMEOUT_SEC)
+	def test_an_unusable_key_is_a_configuration_error_that_never_echoes_it(self) -> None:
+		for value in ("", "not json", '{"type": "service_account", "private_key": "SECRET-LOOKING-VALUE"}'):
+			with self.subTest(value=value[:12]), patch.object(settings, "GOOGLE_SERVICE_ACCOUNT_JSON", value):
+				with self.assertRaises(GoogleConfigurationException) as caught:
+					calendar_credentials()
+				self.assertNotIn("SECRET-LOOKING-VALUE", str(caught.exception.detail))
 
 
 if __name__ == "__main__":

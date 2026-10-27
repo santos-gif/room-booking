@@ -54,8 +54,7 @@ class CalendarAccessException(HTTPException):
 		super().__init__(
 			status_code=status.HTTP_403_FORBIDDEN,
 			detail=(
-				"Your Google account cannot add events to this room's calendar. "
-				"Ask the room's owner to share the calendar with you (permission: make changes to events)."
+				"The room calendar is not available right now. Please try again later or contact the administrator."
 			),
 		)
 

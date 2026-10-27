@@ -14,7 +14,7 @@ class GoogleOAuthTests(unittest.TestCase):
 		self.assertFalse(is_allowed_email("user@evil-pradita.ac.id"))
 		self.assertFalse(is_allowed_email("user@pradita.ac.id.evil.com"))
 
-	def test_google_login_requests_calendar_events_and_configured_callback(self) -> None:
+	def test_google_login_asks_for_identity_only_and_uses_the_configured_callback(self) -> None:
 		redirect_uri = "https://api.example.test/api/v1/google-auth/oauth2callback"
 		with (
 			patch.object(settings, "GOOGLE_CLIENT_ID", "test-client-id"),
@@ -26,12 +26,10 @@ class GoogleOAuthTests(unittest.TestCase):
 
 		query = parse_qs(urlparse(response.headers["location"]).query)
 		self.assertEqual(query["redirect_uri"], [redirect_uri])
-		self.assertEqual(query["access_type"], ["offline"])
-		self.assertIn("consent", query["prompt"][0])
-		self.assertIn(
-			"https://www.googleapis.com/auth/calendar.events",
-			query["scope"][0].split(),
-		)
+		self.assertEqual(query["access_type"], ["online"])
+		self.assertEqual(query["prompt"], ["select_account"])
+		self.assertNotIn("calendar", query["scope"][0])
+		self.assertIn("openid", query["scope"][0].split())
 		self.assertTrue(query["state"][0])
 		self.assertIn(
 			f"google_oauth_state={query['state'][0]}",
