@@ -18,6 +18,8 @@ export interface Availability {
 	bookings_used: number;
 	bookings_remaining: number;
 	slots: AvailableSlot[];
+	/** Why the room is closed on this day (staff closed it); null when it is open. */
+	closed_reason?: string | null;
 }
 
 export interface BookingPayload {

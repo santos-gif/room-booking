@@ -12,7 +12,7 @@ describe('AppHeader (signing out always asks first)', () => {
 		TestBed.configureTestingModule({
 			providers: [
 				provideRouter([]),
-				{ provide: AuthService, useValue: { logout } },
+				{ provide: AuthService, useValue: { logout, me: () => of({ role: 'student' }) } },
 				{ provide: MatDialog, useValue: { open } },
 			],
 		});

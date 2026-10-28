@@ -27,6 +27,8 @@ const REFRESH_MS = 60_000;
 export function loadAvailability(api: BookingFormService, query: AvailabilityQuery) {
 	const slots = signal<AvailableSlot[]>([]);
 	const bookingsRemaining = signal(BOOKING_LIMIT);
+	/** Set when staff closed the room on this day: the slots are shut and this says why. */
+	const closedReason = signal<string | null>(null);
 	const loading = signal(true);
 	const error = signal('');
 	/** The booking being updated no longer exists (the server answers 404 for it). */
@@ -61,6 +63,7 @@ export function loadAvailability(api: BookingFormService, query: AvailabilityQue
 			.subscribe((availability) => {
 				slots.set(availability.slots);
 				bookingsRemaining.set(availability.bookings_remaining);
+				closedReason.set(availability.closed_reason ?? null);
 				error.set('');
 				loading.set(false);
 			});
@@ -72,5 +75,5 @@ export function loadAvailability(api: BookingFormService, query: AvailabilityQue
 		() => !loading() && slots().length > 0 && !slots().some((slot) => slot.available),
 	);
 
-	return { slots, bookingsRemaining, loading, error, noFreeSlot, gone };
+	return { slots, bookingsRemaining, closedReason, loading, error, noFreeSlot, gone };
 }

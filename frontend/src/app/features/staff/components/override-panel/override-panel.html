@@ -1,0 +1,93 @@
+<section class="card panel" aria-labelledby="override-title">
+  <h2 id="override-title">Take a slot</h2>
+  <p class="lead">
+    Pick one hour. Whoever holds it is cancelled and told, and the slot becomes yours. Staff are not
+    limited by the 3-booking limit or the lead time, and may pick past dates.
+  </p>
+
+  <div class="form-row">
+    <div class="field">
+      <label for="override-room">Room</label>
+      <select
+        id="override-room"
+        class="input"
+        [ngModel]="room()"
+        (ngModelChange)="edit(room, +$event === 2 ? 2 : 1)"
+      >
+        <option [ngValue]="1">Discussion Room 1</option>
+        <option [ngValue]="2">Discussion Room 2</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="override-day">Date</label>
+      <input
+        id="override-day"
+        class="input"
+        type="date"
+        [ngModel]="day()"
+        (ngModelChange)="edit(day, $event)"
+      />
+    </div>
+    <div class="field">
+      <label for="override-hour">Time (WIB)</label>
+      <select
+        id="override-hour"
+        class="input"
+        [ngModel]="hour()"
+        (ngModelChange)="edit(hour, +$event)"
+      >
+        @for (item of hours; track item) {
+          <option [ngValue]="item">{{ item }}:00 to {{ item + 1 }}:00</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="alert" role="alert">{{ error() }}</p>
+  }
+  @if (message()) {
+    <p class="alert alert-info" role="status">{{ message() }}</p>
+  }
+
+  @if (holders(); as rows) {
+    @if (rows.length) {
+      <p class="alert alert-info" role="status">
+        This slot is held, and the holder will be cancelled:
+      </p>
+      <ul class="list">
+        @for (row of rows; track row.appointment_id) {
+          <li>
+            {{ row.start_time | date: 'EEE dd/MM HH:mm' : '+0700' }} WIB:
+            {{ row.booker_name || row.booker_email }} ({{ row.booker_nim ?? 'no NIM/NIDN' }})
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="alert alert-info" role="status">This slot is free.</p>
+    }
+    <div class="field">
+      <label for="override-reason">Reason (shown to the students and on the calendar)</label>
+      <input
+        id="override-reason"
+        class="input"
+        maxlength="200"
+        placeholder="For example: thesis defence"
+        [ngModel]="reason()"
+        (ngModelChange)="reason.set($event)"
+      />
+    </div>
+    <button
+      type="button"
+      class="btn btn-danger-solid"
+      [disabled]="busy() || !reason().trim()"
+      (click)="take()"
+    >
+      Take this slot
+    </button>
+  } @else {
+    <button type="button" class="btn btn-primary" [disabled]="busy() || !ready()" (click)="check()">
+      Check who holds it
+    </button>
+  }
+</section>

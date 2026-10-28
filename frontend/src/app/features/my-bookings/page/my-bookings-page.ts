@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm
 import { BookingCard } from '../components/booking-card/booking-card';
 import { EmptyState } from '../components/empty-state/empty-state';
 import { MyBookingsService } from '../service/my-bookings.service';
+import { NoticesService } from '../service/notices.service';
 import { DIALOG_WIDTH } from '../../../shared/helpers/dialog-width';
 
 const CANCEL_FAILED = 'Unable to cancel this appointment. It has not been removed.';
@@ -29,6 +30,9 @@ export class MyBookingsPage {
 	private readonly bookings = inject(MyBookingsService);
 	private readonly router = inject(Router);
 	private readonly dialog = inject(MatDialog);
+	private readonly noticeApi = inject(NoticesService);
+	/** Messages about bookings staff cancelled, until the student dismisses them. */
+	readonly notices = this.noticeApi.notices;
 	private readonly cancelError = signal('');
 	readonly errorMessage = computed(() => this.cancelError() || this.bookings.error());
 	readonly busyId = signal('');
@@ -39,10 +43,15 @@ export class MyBookingsPage {
 	constructor() {
 		// Shows the cached list at once; the store only calls the server when the cache is stale.
 		this.bookings.refresh();
+		this.noticeApi.load();
 		// While this tab is open, notice a booking whose Google event was deleted without a reload.
 		visibleTimer(POLL_MS)
 			.pipe(takeUntilDestroyed())
 			.subscribe(() => this.bookings.refresh(STALE_MS));
+	}
+
+	dismissNotice(id: string): void {
+		this.noticeApi.dismiss(id);
 	}
 
 	addAppointment(): void {

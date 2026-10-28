@@ -9,3 +9,4 @@ class UserRecord(BaseModel):
 	name: str | None = None
 	nim: int | None = None
 	major: str | None = None
+	role: str = "student"

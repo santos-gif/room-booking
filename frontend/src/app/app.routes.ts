@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authenticatedGuard } from './core/guards/auth-guards';
+import { authenticatedGuard, staffGuard } from './core/guards/auth-guards';
 import { unlessLocked } from './core/guards/leave-guard';
 
 // Pages are lazy so the first paint only ships the login screen; app.config preloads the rest.
@@ -40,6 +40,12 @@ export const routes: Routes = [
 				(m) => m.MyBookingsPage,
 			),
 		canActivate: [authenticatedGuard],
+	},
+	{
+		path: 'staff',
+		loadComponent: () =>
+			import('./features/staff/page/staff-page').then((m) => m.StaffPage),
+		canActivate: [authenticatedGuard, staffGuard],
 	},
 	{
 		path: 'access-denied',

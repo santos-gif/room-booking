@@ -37,3 +37,14 @@ def pending_record(appointment_id: str, start: datetime) -> dict[str, object]:
 		"status": "pending",
 		"sync_status": "pending",
 	}
+
+
+def staff_user() -> AuthenticatedUser:
+	"""Fake a signed-in staff member."""
+	return student_user("staff-id").model_copy(update={"role": "staff", "name": "Bu Dosen"})
+
+
+def cancelled_row(n: int) -> dict[str, object]:
+	"""A booking staff cancelled, still waiting for its Google event to be deleted."""
+	return {"id": f"old{n}", "status": "cancelled", "google_calendar_id": "cal", "google_event_id": f"ev{n}"}
+

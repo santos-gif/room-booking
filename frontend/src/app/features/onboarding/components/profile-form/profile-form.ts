@@ -2,7 +2,7 @@ import { Component, input, model, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MAJORS, Major } from '../../../../core/types/auth';
 
-/** NIM and major fields, used for first-time onboarding and later profile edits. */
+/** NIM/NIDN and major fields, used for first-time onboarding and later profile edits. */
 @Component({
 	selector: 'app-profile-form',
 	imports: [FormsModule],

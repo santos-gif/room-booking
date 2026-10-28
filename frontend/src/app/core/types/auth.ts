@@ -10,6 +10,7 @@ export const MAJORS = [
 	'Hospitality & Tourism',
 	'Interior Design',
 	'Urban Planning',
+	'Dosen/Staff',
 ] as const;
 
 export type Major = (typeof MAJORS)[number];
@@ -20,5 +21,6 @@ export interface AuthenticatedUser {
 	name: string | null;
 	nim: number | null;
 	major: Major | null;
+	role: 'student' | 'staff';
 	onboarding_complete: boolean;
 }

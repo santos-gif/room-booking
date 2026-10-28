@@ -8,7 +8,7 @@ import {
 } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { AuthService } from '../services/auth-service';
-import { authenticatedGuard } from './auth-guards';
+import { authenticatedGuard, staffGuard } from './auth-guards';
 
 describe('authenticatedGuard (a server problem is not the same as being signed out)', () => {
 	function run(me: Observable<unknown>, url: string) {
@@ -77,5 +77,31 @@ describe('authenticatedGuard (a server problem is not the same as being signed o
 			);
 			TestBed.resetTestingModule();
 		}
+	});
+});
+
+describe('staffGuard (students who type /staff go back to their bookings)', () => {
+	function run(me: Observable<unknown>) {
+		TestBed.configureTestingModule({
+			providers: [provideRouter([]), { provide: AuthService, useValue: { me: () => me } }],
+		});
+		const result = TestBed.runInInjectionContext(() =>
+			staffGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+		) as Observable<boolean | UrlTree>;
+		let outcome: boolean | UrlTree | undefined;
+		result.subscribe((value) => (outcome = value));
+		return { outcome: () => outcome, router: TestBed.inject(Router) };
+	}
+
+	it('lets staff in', () => {
+		expect(run(of({ role: 'staff' })).outcome()).toBe(true);
+	});
+
+	it('sends a student to My bookings and a signed-out visitor to the sign-in page', () => {
+		const student = run(of({ role: 'student' }));
+		expect(student.router.serializeUrl(student.outcome() as UrlTree)).toBe('/my-bookings');
+		TestBed.resetTestingModule();
+		const visitor = run(throwError(() => ({ status: 401 })));
+		expect(visitor.router.serializeUrl(visitor.outcome() as UrlTree)).toBe('/');
 	});
 });

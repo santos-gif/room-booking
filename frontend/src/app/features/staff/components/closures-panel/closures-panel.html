@@ -1,0 +1,99 @@
+<section class="card panel" aria-labelledby="closures-title">
+  <h2 id="closures-title">Close a room</h2>
+  <p class="lead">
+    Block a room for a range of dates, past dates included. Active bookings inside it are cancelled
+    and the students are told.
+  </p>
+
+  <div class="form-row">
+    <div class="field">
+      <label for="closure-room">Room</label>
+      <select
+        id="closure-room"
+        class="input"
+        [ngModel]="room()"
+        (ngModelChange)="edit(room, +$event === 2 ? 2 : 1)"
+      >
+        <option [ngValue]="1">Discussion Room 1</option>
+        <option [ngValue]="2">Discussion Room 2</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="closure-start">From</label>
+      <input
+        id="closure-start"
+        class="input"
+        type="date"
+        [ngModel]="start()"
+        (ngModelChange)="edit(start, $event)"
+      />
+    </div>
+    <div class="field">
+      <label for="closure-end">To (inclusive)</label>
+      <input
+        id="closure-end"
+        class="input"
+        type="date"
+        [ngModel]="end()"
+        (ngModelChange)="edit(end, $event)"
+      />
+    </div>
+  </div>
+  <div class="field">
+    <label for="closure-reason">Reason (students see it)</label>
+    <input
+      id="closure-reason"
+      class="input"
+      maxlength="200"
+      placeholder="For example: air conditioning repair"
+      [ngModel]="reason()"
+      (ngModelChange)="edit(reason, $event)"
+    />
+  </div>
+
+  @if (error()) {
+    <p class="alert" role="alert">{{ error() }}</p>
+  }
+  @if (message()) {
+    <p class="alert alert-info" role="status">{{ message() }}</p>
+  }
+
+  @if (affected(); as rows) {
+    <p class="alert alert-info" role="status">
+      {{ rows.length }} active booking(s) would be cancelled.
+    </p>
+    <ul class="list">
+      @for (row of rows; track row.appointment_id) {
+        <li>
+          {{ row.start_time | date: 'EEE dd/MM HH:mm' : '+0700' }} WIB, Room {{ row.room_number }}:
+          {{ row.booker_name || row.booker_email }} ({{ row.booker_nim ?? 'no NIM/NIDN' }})
+        </li>
+      }
+    </ul>
+    <button type="button" class="btn btn-danger-solid" [disabled]="busy()" (click)="close()">
+      Close the room and cancel {{ rows.length }} booking(s)
+    </button>
+  } @else {
+    <button
+      type="button"
+      class="btn btn-primary"
+      [disabled]="busy() || !ready()"
+      (click)="preview()"
+    >
+      Preview who is affected
+    </button>
+  }
+
+  @if (closures().length) {
+    <h3>Current and past closures</h3>
+    <ul class="list">
+      @for (closure of closures(); track closure.id) {
+        <li>
+          Room {{ closure.room_number }}: {{ closure.start_date }} to {{ closure.end_date }},
+          {{ closure.reason }}
+          <button type="button" class="btn" (click)="remove(closure)">Reopen</button>
+        </li>
+      }
+    </ul>
+  }
+</section>

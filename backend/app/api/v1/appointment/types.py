@@ -41,6 +41,7 @@ class AvailabilityResponse(BaseModel):
 	bookings_used: int
 	bookings_remaining: int
 	slots: list[AvailableSlot]
+	closed_reason: str | None = None
 
 
 class ReschedulePayload(AppointmentPayload):
@@ -66,6 +67,14 @@ class AppointmentResponse(BaseModel):
 		return value.astimezone(JAKARTA_TZ)
 
 
+class NoticeResponse(BaseModel):
+	"""A message for a student whose booking staff cancelled, shown in My bookings until dismissed."""
+
+	id: str
+	message: str
+	created_at: datetime
+
+
 class ReconciliationResponse(BaseModel):
 	checked: int
 	synchronized: int
@@ -80,5 +89,6 @@ __all__ = [
 	"ReschedulePayload",
 	"AvailabilityResponse",
 	"AvailableSlot",
+	"NoticeResponse",
 	"ReconciliationResponse",
 ]

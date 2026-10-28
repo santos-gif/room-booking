@@ -43,6 +43,7 @@ export class BookingFormPage {
 	});
 	readonly slots = this.availability.slots;
 	readonly bookingsRemaining = this.availability.bookingsRemaining;
+	readonly closedReason = this.availability.closedReason;
 	readonly loading = this.availability.loading;
 	readonly availabilityError = this.availability.error;
 	/** The booking being updated is gone: nothing can be saved and the page returns to My bookings. */

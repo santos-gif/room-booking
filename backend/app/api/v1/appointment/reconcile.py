@@ -9,7 +9,7 @@ from fastapi import HTTPException, status
 from postgrest.exceptions import APIError
 from supabase import Client
 
-from app.api.v1.appointment.reconcile_replacements import finish_replacements
+from app.api.v1.appointment.reconcile_replacements import finish_cancelled, finish_replacements
 from app.api.v1.appointment.reconcile_sync import RECONCILE_ERRORS, stored_utc, sync_row
 from app.api.v1.appointment.types import ReconciliationResponse
 from app.config import settings
@@ -93,6 +93,8 @@ def _prepare_legacy(supabase: Client, row: dict[str, object]) -> bool:
 
 
 def _reconcile_row(supabase: Client, row: dict[str, object]) -> str | None:
+	if row.get("status") == "cancelled":
+		return finish_cancelled(supabase, row)
 	if row.get("status") == "pending":
 		return _reconcile_pending(supabase, row)
 	return sync_row(supabase, row) if _prepare_legacy(supabase, row) else "failed"

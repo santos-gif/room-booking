@@ -20,8 +20,9 @@ app/
     types.py         GoogleIdentity
   queries/         the Supabase table/RPC calls for appointments
     appointments.py  list, get, insert, state updates, availability, reconciliation RPCs
+    staff.py         room closures, the staff functions, booking notices
   api/v1/
-    api_router.py    mounts the three routers below
+    api_router.py    mounts the routers below
     auth/            router.py, helper.py (current user, renew tokens, onboarding), revoke.py (end a
                      session on Supabase's side at logout), types, exceptions
     google_auth/     router.py (routes only), login.py (start login), then the finish-login steps:
@@ -41,6 +42,11 @@ app/
       reconcile_sync.py          one booking vs its calendar event
       reconcile_replacements.py  cancel the old booking after a confirmed reschedule
       verify.py        GET /?verify=true: drop bookings whose Google event was deleted, fix old titles
+    staff/           router.py (every route needs role staff), access.py (require_staff, DB errors to 4xx), types.py,
+                     closures.py (close a room for dates, preview, remove), override.py (take one slot),
+                     events.py (delete the Google events of staff-cancelled bookings, mark them synced)
+                     Roles: `users.role` (student|staff) is set only by an administrator with SQL; jurusan carries no authority.
+                     Staff are exempt from the 3-booking limit and the 5-minute/90-day window (database and backend).
 ```
 
 ## The one-way import rule

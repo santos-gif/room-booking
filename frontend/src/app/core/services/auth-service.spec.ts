@@ -11,6 +11,7 @@ const user: AuthenticatedUser = {
 	nim: 2510101051,
 	major: 'Management',
 	onboarding_complete: true,
+	role: 'student',
 };
 const unauthorized = { status: 401, statusText: 'Unauthorized' };
 const isMe = (r: { url: string }) => r.url.endsWith('/auth/me');

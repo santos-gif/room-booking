@@ -98,7 +98,7 @@ class AuthHelperTests(unittest.TestCase):
 		with self.assertRaises(Exception) as caught:
 			save_onboarding(supabase, student_user(), OnboardingPayload(nim=1, major="Management"))
 		self.assertEqual(caught.exception.status_code, 409)
-		self.assertEqual(caught.exception.detail, "That NIM is already registered.")
+		self.assertEqual(caught.exception.detail, "That NIM/NIDN is already registered.")
 
 	def test_nim_is_capped_below_js_precision_limit(self) -> None:
 		self.assertEqual(OnboardingPayload(nim=9_999_999_999_999, major="Management").nim, 9_999_999_999_999)

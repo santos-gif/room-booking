@@ -11,6 +11,9 @@
     <nav aria-label="Main" [class.locked]="lock()">
       <a routerLink="/my-bookings" routerLinkActive="active">My bookings</a>
       <a routerLink="/profile" routerLinkActive="active">Profile</a>
+      @if (isStaff()) {
+        <a routerLink="/staff" routerLinkActive="active">Staff</a>
+      }
     </nav>
     <button type="button" class="signout" [disabled]="lock()" (click)="logout()">Sign out</button>
   </div>

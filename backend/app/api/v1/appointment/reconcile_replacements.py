@@ -9,6 +9,20 @@ from app.queries.appointments import ACTIVE_STATUSES
 logger = logging.getLogger(__name__)
 
 
+def finish_cancelled(supabase: Client, row: dict[str, object]) -> str:
+	"""A booking staff cancelled: make sure its Google event is gone, then mark it done. Returns the outcome."""
+	calendar_id, event_id = row.get("google_calendar_id"), row.get("google_event_id")
+	try:
+		if isinstance(calendar_id, str) and isinstance(event_id, str):
+			delete_calendar_event(calendar_id, event_id)
+		appointment_queries.update_for_reconciliation(supabase, str(row["id"]), "cancelled", "synced")
+	except Exception:
+		# Any error (Google, database or a malformed row) counts as failed; the next run tries again.
+		logger.exception("Cancelled appointment %s could not be finished.", row.get("id"))
+		return "failed"
+	return "released"
+
+
 def finish_replacements(supabase: Client, rows: list[object]) -> tuple[int, int]:
 	"""Cancel the old booking of every confirmed reschedule. Returns (released, failed)."""
 	released = 0

@@ -79,7 +79,7 @@ export class OnboardingPage {
 	submit(): void {
 		const details = this.details();
 		if (!details) {
-			this.errorMessage.set('Enter a valid NIM and select your major.');
+			this.errorMessage.set('Enter a valid NIM/NIDN and select your major.');
 			return;
 		}
 		this.submitting.set(true);

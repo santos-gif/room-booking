@@ -32,7 +32,9 @@
   @if (availabilityError() && !loading()) {
     <button type="button" class="btn retry" (click)="retry()">Try again</button>
   }
-  @if (bookingsRemaining() === 0) {
+  @if (closedReason()) {
+    <p class="alert alert-info" role="status">Room closed on this day: {{ closedReason() }}</p>
+  } @else if (bookingsRemaining() === 0) {
     <p class="alert alert-info" role="status">
       You hold 3 upcoming bookings. Cancel one to book another.
     </p>

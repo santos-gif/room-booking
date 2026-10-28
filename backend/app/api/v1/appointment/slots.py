@@ -19,6 +19,7 @@ from app.api.v1.appointment.types import (
 from app.api.v1.auth.types import AuthenticatedUser
 from app.models.appointment import AppointmentRecord
 from app.queries import appointments as appointment_queries
+from app.queries import staff as staff_queries
 
 # Mirrors the database trigger enforce_active_booking_limit.
 MAX_ACTIVE_BOOKINGS = 3
@@ -50,7 +51,7 @@ def to_responses(data: object) -> list[AppointmentResponse]:
 		raise AppointmentStorageException() from error
 
 
-def validate_slot(start_time: datetime, room_number: int) -> datetime:
+def validate_slot(start_time: datetime, room_number: int, staff: bool = False) -> datetime:
 	local_start = start_time.astimezone(JAKARTA_TZ)
 	if room_number not in (1, 2):
 		raise AppointmentValidationException("Choose Discussion Room 1 or 2.")
@@ -65,6 +66,8 @@ def validate_slot(start_time: datetime, room_number: int) -> datetime:
 			f"Bookings must start on weekdays between {OPEN_HOUR:02d}:00 and {CLOSE_HOUR - 1:02d}:00 WIB."
 		)
 	now = datetime.now(JAKARTA_TZ)
+	if staff:  # staff may take any slot, including past ones: no lead or advance rule
+		return local_start
 	if local_start <= now + LEAD:
 		raise AppointmentValidationException(
 			f"Bookings close {LEAD.seconds // 60} minutes before the slot starts."
@@ -103,16 +106,20 @@ def get_availability(
 	bookings_used = availability.get("bookings_used")
 	if not isinstance(bookings_used, int):
 		raise AppointmentStorageException()
+	closure = staff_queries.closure_on(supabase, room_number, booking_date)
+	staff = current_user.role == "staff"
+	if staff:
+		bookings_used = 0  # no booking limit for staff, so the page must not show one
 	now = datetime.now(JAKARTA_TZ)
 	slots = [
 		AvailableSlot(
 			start_time=slot,
 			end_time=slot + SLOT_LENGTH,
 			available=(
-				booking_date.weekday() < 5
+				closure is None
+				and booking_date.weekday() < 5
 				and slot not in booked_starts
-				and now + LEAD < slot <= now + MAX_ADVANCE
-				and bookings_used < MAX_ACTIVE_BOOKINGS
+				and (staff or (now + LEAD < slot <= now + MAX_ADVANCE and bookings_used < MAX_ACTIVE_BOOKINGS))
 			),
 		)
 		for hour in range(OPEN_HOUR, CLOSE_HOUR)
@@ -122,5 +129,6 @@ def get_availability(
 		bookings_used=bookings_used,
 		bookings_remaining=max(0, MAX_ACTIVE_BOOKINGS - bookings_used),
 		slots=slots,
+		closed_reason=str(closure["reason"]) if closure else None,
 	)
 

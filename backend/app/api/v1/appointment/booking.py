@@ -23,6 +23,7 @@ from app.api.v1.appointment.types import AppointmentPayload, AppointmentResponse
 from app.api.v1.auth.types import AuthenticatedUser
 from app.google_api.calendar_api import room_calendar_id
 from app.queries import appointments as appointment_queries
+from app.queries import staff as staff_queries
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +42,12 @@ def create_appointment(
 	replaces_appointment_id: str | None = None,
 ) -> AppointmentResponse:
 	"""Reserve the slot (a pending row), mirror it in Google Calendar, then confirm it."""
-	start_time = validate_slot(payload.start_time, payload.room_number)
+	start_time = validate_slot(payload.start_time, payload.room_number, staff=current_user.role == "staff")
 	if current_user.nim is None:
 		raise ProfileIncompleteException()
+	closure = staff_queries.closure_on(supabase, payload.room_number, start_time.date())
+	if closure:
+		raise AppointmentValidationException(f"The room is closed on that date: {closure['reason']}")
 	end_time = start_time + timedelta(hours=1)
 	calendar_id = room_calendar_id(payload.room_number)
 	appointment_id = str(uuid4())

@@ -12,6 +12,13 @@
     <p class="alert" role="alert">{{ errorMessage() }}</p>
   }
 
+  @for (notice of notices(); track notice.id) {
+    <p class="alert alert-info" role="status">
+      {{ notice.message }}
+      <button type="button" class="btn" (click)="dismissNotice(notice.id)">Dismiss</button>
+    </p>
+  }
+
   <!-- The panel is always there; only what is inside it changes as the data arrives. -->
   <section class="card panel" aria-label="Upcoming bookings" [attr.aria-busy]="!loaded()">
     @if (!loaded()) {

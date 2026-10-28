@@ -34,3 +34,14 @@ export const authenticatedGuard: CanActivateFn = (_route, state) => {
 		}),
 	);
 };
+
+/** Staff only: students who type /staff go back to their bookings. The server refuses them anyway. */
+export const staffGuard: CanActivateFn = () => {
+	const router = inject(Router);
+	return inject(AuthService)
+		.me()
+		.pipe(
+			map((user) => user.role === 'staff' || router.parseUrl('/my-bookings')),
+			catchError(() => of(router.parseUrl('/'))),
+		);
+};

@@ -41,7 +41,7 @@ describe('BookingFormPage in update mode (never saves a booking that is gone)', 
 				provideRouter([{ path: 'my-bookings', children: [] }]),
 				{
 					provide: AuthService,
-					useValue: { login: vi.fn(), logout: vi.fn() },
+					useValue: { login: vi.fn(), logout: vi.fn(), me: () => of({ role: 'student' }) },
 				},
 				{ provide: MatDialog, useValue: { open: vi.fn() } },
 				{

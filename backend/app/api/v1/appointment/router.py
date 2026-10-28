@@ -13,6 +13,7 @@ from app.api.v1.appointment.types import (
 	AppointmentPayload,
 	AppointmentResponse,
 	AvailabilityResponse,
+	NoticeResponse,
 	ReconciliationResponse,
 	ReschedulePayload,
 )
@@ -20,6 +21,7 @@ from app.api.v1.appointment.verify import verify_appointments
 from app.api.v1.auth.helper import get_current_user
 from app.api.v1.auth.types import AuthenticatedUser
 from app.database import PublicSupabaseClient, SupabaseClient
+from app.queries import staff as staff_queries
 
 router = APIRouter(prefix="/appointments")
 
@@ -51,6 +53,23 @@ async def get_available_slots(
 		current_user,
 		str(exclude_appointment_id) if exclude_appointment_id else None,
 	)
+
+
+@router.get("/notices", response_model=list[NoticeResponse])
+async def get_notices(
+	supabase: SupabaseClient,
+	current_user: AuthenticatedUser = Depends(get_current_user),
+) -> list[NoticeResponse]:
+	return await run_in_threadpool(staff_queries.list_notices, supabase)
+
+
+@router.post("/notices/{notice_id}/seen", status_code=status.HTTP_204_NO_CONTENT)
+async def dismiss_notice(
+	notice_id: UUID,
+	supabase: SupabaseClient,
+	current_user: AuthenticatedUser = Depends(get_current_user),
+) -> None:
+	await run_in_threadpool(staff_queries.dismiss_notice, supabase, str(notice_id))
 
 
 @router.get("/reconcile", response_model=ReconciliationResponse)

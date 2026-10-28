@@ -94,6 +94,7 @@ def get_current_user(
 		name=user.name,
 		nim=user.nim,
 		major=user.major,
+		role="staff" if user.role == "staff" else "student",
 	)
 
 
@@ -111,7 +112,7 @@ def save_onboarding(
 		)
 	except APIError as error:
 		if error.code == "23505":
-			raise HTTPException(409, "That NIM is already registered.") from error
+			raise HTTPException(409, "That NIM/NIDN is already registered.") from error
 		raise
 	if not result.data or not isinstance(result.data[0], dict):
 		raise UserNotFoundException()
@@ -125,4 +126,5 @@ def save_onboarding(
 		name=user.name,
 		nim=user.nim,
 		major=user.major,
+		role="staff" if user.role == "staff" else "student",
 	)

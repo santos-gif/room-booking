@@ -14,6 +14,7 @@ Major = Literal[
 	"Hospitality & Tourism",
 	"Interior Design",
 	"Urban Planning",
+	"Dosen/Staff",
 ]
 
 
@@ -29,6 +30,7 @@ class AuthenticatedUser(BaseModel):
 	name: str | None = None
 	nim: int | None = None
 	major: str | None = None
+	role: Literal["student", "staff"] = "student"
 
 
 class OnboardingPayload(BaseModel):

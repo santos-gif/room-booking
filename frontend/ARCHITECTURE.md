@@ -53,6 +53,7 @@ written once, not in every page.
 | `onboarding` | `page`, `components`, `service`, `types` (also serves `/profile`, the same screen in "edit" mode) |
 | `booking-form` | `page`, `components`, `service`, `helpers`, `types` |
 | `my-bookings` | `page`, `components`, `service` (a read-only filter over the shared `core/services/bookings-store.ts`) |
+| `staff` | `page`, `components` (closures, override), `service`, `types` (route `/staff`, guarded by `staffGuard`; the server is the real check) |
 | `access-denied` | `page` (a static message page, no server access) |
 
 ## `utils` and `helpers` are different things

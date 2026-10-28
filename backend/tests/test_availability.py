@@ -47,4 +47,4 @@ class AvailabilityTests(unittest.TestCase):
 				"excluded_appointment_id": None,
 			},
 		)
-		supabase.table.assert_not_called()
+		supabase.table.assert_called_once_with("room_closures")  # the only table read: closures

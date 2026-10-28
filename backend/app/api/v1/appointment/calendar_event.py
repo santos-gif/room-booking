@@ -27,8 +27,21 @@ def build_calendar_event(
 	}
 
 
+def clean_line(text: str, limit: int = MAX_NAME_LENGTH) -> str:
+	"""One short printable line: it is shown on the room calendar."""
+	one_line = " ".join(text.split())
+	return "".join(c for c in one_line if c.isprintable())[:limit].strip()
+
+
 def booker_name(user: AuthenticatedUser) -> str:
 	"""Name for the event title: one short line, no control characters (it is shown on the room calendar)."""
-	one_line = " ".join((user.name or "").split())
-	name = "".join(c for c in one_line if c.isprintable())[:MAX_NAME_LENGTH].strip()
-	return name or user.email.partition("@")[0]
+	return clean_line(user.name or "") or user.email.partition("@")[0]
+
+
+def build_staff_hold_event(
+	appointment_id: str, room_number: int, start_time: datetime, end_time: datetime, name: str, reason: str
+) -> dict[str, object]:
+	"""A slot staff took for themselves: the reason is public on the calendar, so students can see why."""
+	event = build_calendar_event(appointment_id, room_number, start_time, end_time)
+	event["summary"] = f"Discussion Room {room_number}-Reserved by staff: {clean_line(reason)} ({name})"
+	return event
