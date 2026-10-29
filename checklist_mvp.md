@@ -64,3 +64,5 @@ Hasil audit manual (review kode, fuzzing 4.500+ request, pengujian dari luar ter
 - **Email kampus yang dipakai ulang** bisa mewarisi akun lama jika Supabase otomatis menautkan identitas; belum ada pengikatan ke `sub` Google (perlu kolom baru + migrasi).
 - **Pengguna yang dikeluarkan dari Workspace** tetap punya sesi sampai 30 hari (sesi diperpanjang setiap refresh); batasi masa sesi di Supabase jika paketnya mendukung.
 - **Kalender ruangan harus dibagikan** ke semua mahasiswa dengan izin "Make changes to events"; jika tidak, booking gagal dengan pesan yang meminta pemilik membagikan kalendernya.
+
+Link video demo: https://drive.google.com/drive/folders/1w3qJziggvK4wHWlg2-z_DbvWK-4eC_5x?usp=drive_link
