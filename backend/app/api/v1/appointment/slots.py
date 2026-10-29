@@ -77,6 +77,20 @@ def validate_slot(start_time: datetime, room_number: int, staff: bool = False) -
 	return local_start
 
 
+def _own_busy(supabase: Client, user_id: str, exclude_appointment_id: str | None) -> set[datetime]:
+	"""Start times the student already holds in ANY room: one person cannot be in two rooms at once."""
+	rows = appointment_queries.list_active(supabase, user_id)
+	if not isinstance(rows, list):
+		return set()
+	return {
+		datetime.fromisoformat(row["start_time"]).astimezone(JAKARTA_TZ)
+		for row in rows
+		if isinstance(row, dict)
+		and isinstance(row.get("start_time"), str)
+		and row.get("id") != exclude_appointment_id
+	}
+
+
 def get_availability(
 	supabase: Client,
 	booking_date: date,
@@ -110,6 +124,7 @@ def get_availability(
 	staff = current_user.role == "staff"
 	if staff:
 		bookings_used = 0  # no booking limit for staff, so the page must not show one
+	own_busy = set() if staff else _own_busy(supabase, current_user.id, exclude_appointment_id)
 	now = datetime.now(JAKARTA_TZ)
 	slots = [
 		AvailableSlot(
@@ -119,6 +134,7 @@ def get_availability(
 				closure is None
 				and booking_date.weekday() < 5
 				and slot not in booked_starts
+				and slot not in own_busy
 				and (staff or (now + LEAD < slot <= now + MAX_ADVANCE and bookings_used < MAX_ACTIVE_BOOKINGS))
 			),
 		)

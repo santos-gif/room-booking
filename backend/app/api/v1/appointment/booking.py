@@ -82,6 +82,8 @@ def _reserve_slot(supabase: Client, values: JSON, replaces_appointment_id: str |
 			raise AppointmentConflictException() from error
 		if error.code == "P0001":
 			raise DailyBookingLimitException() from error
+		if error.code == "23514" and "already hold" in (error.message or ""):
+			raise AppointmentValidationException("You already have a room booked at that time.") from error
 		if replaces_appointment_id and error.code in ("23514", "23503"):
 			# The old booking was cancelled between the lookup and this insert.
 			raise AppointmentNotFoundException() from error
