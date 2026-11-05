@@ -1,7 +1,7 @@
 import { DestroyRef, effect, inject, Signal, untracked } from '@angular/core';
 import { Router } from '@angular/router';
-import { NavigationLock } from '../../../core/services/navigation-lock';
-import { BookingFormService } from '../service/booking-form.service';
+import { NavigationLock } from '../../../shared/stores/navigation-lock';
+import { BookingFormService } from '../services/booking-form.service';
 
 /**
  * Two page-wide rules. While `saving` the navbar and back button are locked, so the page cannot be

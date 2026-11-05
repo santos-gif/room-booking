@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { Appointment } from '../types/appointment';
+import { Appointment } from '../../core/types/appointment';
 import { BookingsStore } from './bookings-store';
 
 const booking = (id: string): Appointment => ({

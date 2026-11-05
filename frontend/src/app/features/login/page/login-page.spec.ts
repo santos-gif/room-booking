@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
-import { LoginService } from '../service/login.service';
+import { LoginService } from '../services/login.service';
 import { LoginPage } from './login-page';
 
 describe('LoginPage (who is sent where)', () => {

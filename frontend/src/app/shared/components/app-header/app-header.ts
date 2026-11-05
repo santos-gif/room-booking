@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { catchError, map, of } from 'rxjs';
 import { AuthService } from '../../../core/services/auth-service';
-import { NavigationLock } from '../../../core/services/navigation-lock';
+import { NavigationLock } from '../../stores/navigation-lock';
 import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
 import { DIALOG_WIDTH } from '../../helpers/dialog-width';
 

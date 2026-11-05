@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { NavigationLock } from '../services/navigation-lock';
+import { NavigationLock } from '../../shared/stores/navigation-lock';
 import { unlessLocked } from './leave-guard';
 
 describe('unlessLocked', () => {

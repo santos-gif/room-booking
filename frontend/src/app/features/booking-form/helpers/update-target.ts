@@ -2,7 +2,7 @@ import { computed, effect, signal, untracked, WritableSignal } from '@angular/co
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { jakartaDate } from '../../../shared/helpers/jakarta-today';
 import { BookingAppointment } from '../types/booking-form';
-import { BookingFormService } from '../service/booking-form.service';
+import { BookingFormService } from '../services/booking-form.service';
 
 interface UpdateView {
 	room: WritableSignal<1 | 2>;

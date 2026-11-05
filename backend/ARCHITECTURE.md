@@ -81,6 +81,20 @@ Tests patch a name where it is *used* (e.g. `booking.create_calendar_event`).
 | an HTTP route path or its inputs            | the `router.py` of that feature                        |
 | the CSRF check                              | `main.py`                                              |
 
+## Words used here
+
+Short on purpose: one line per word, taken from the code. Code and database say `appointment`; the app says "booking".
+
+- **Booking / appointment**: one student's reservation of one numbered room for one time slot.
+- **Status**: `pending` (reserved, Google event not made yet), `confirmed`, `cancelled`.
+- **Sync status**: does the booking agree with its Google event: `pending`, `synced`, `failed`, `legacy`.
+- **Lead / window / limit**: the earliest start (5 minutes ahead), the furthest start (90 days) and the cap of 3 bookings per student.
+- **Rollback**: throw away or mark `failed` a pending booking when its Google event could not be made.
+- **Reschedule**: create the new booking, then cancel the old one (`replaces_appointment_id` links them).
+- **Reconcile**: the daily cron repair of bookings that disagree with Google Calendar. **Verify**: the same check, run on one student's upcoming bookings when they open My bookings.
+- **Closure**: staff closing a room for dates. **Override**: staff taking one slot even if a student holds it.
+- **Role**: `student` or `staff`, set only by an administrator in SQL. **Service account**: the one Google identity that writes every event.
+
 ## Known leftovers (on purpose, for later)
 
 - Some Supabase queries still live outside `queries/` (users table in `auth/helper.py` and

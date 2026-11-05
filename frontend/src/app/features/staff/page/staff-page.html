@@ -8,6 +8,24 @@
       </p>
     </div>
   </div>
-  <app-closures-panel />
-  <app-override-panel />
+  <app-closures-panel
+    [closures]="closures()"
+    [affected]="affected()"
+    [busy]="closureBusy()"
+    [message]="closureMessage()"
+    [error]="closureError()"
+    (edited)="forgetPreview()"
+    (previewRequested)="preview($event)"
+    (closeRequested)="close($event)"
+    (reopenRequested)="askToReopen($event)"
+  />
+  <app-override-panel
+    [holders]="holders()"
+    [busy]="overrideBusy()"
+    [message]="overrideMessage()"
+    [error]="overrideError()"
+    (edited)="forgetCheck()"
+    (checkRequested)="check($event)"
+    (takeRequested)="take($event)"
+  />
 </main>

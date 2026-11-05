@@ -8,7 +8,7 @@ import { ResultDialog } from '../components/result-dialog/result-dialog';
 import { SlotGrid } from '../components/slot-grid/slot-grid';
 import { loadAvailability } from '../helpers/availability-loader';
 import { describeBookingFailure, NOT_FOUND } from '../helpers/booking-errors';
-import { BookingFormService } from '../service/booking-form.service';
+import { BookingFormService } from '../services/booking-form.service';
 import { guardBookingPage } from '../helpers/page-lifecycle';
 import { loadUpdateTarget } from '../helpers/update-target';
 import { AvailableSlot, BookingPayload } from '../types/booking-form';
@@ -68,9 +68,12 @@ export class BookingFormPage {
 	readonly currentStart = this.target.currentStart;
 	readonly noFreeSlot = this.availability.noFreeSlot;
 
-	constructor() {
-		guardBookingPage(this.submitting, this.blocked, () => !!this.resultMessage());
-	}
+	// Locks the navbar while saving and leaves for My bookings when the booking being updated is gone.
+	protected readonly lifecycle = guardBookingPage(
+		this.submitting,
+		this.blocked,
+		() => !!this.resultMessage(),
+	);
 
 	changeRoom(room: 1 | 2): void {
 		this.roomNumber.set(room);

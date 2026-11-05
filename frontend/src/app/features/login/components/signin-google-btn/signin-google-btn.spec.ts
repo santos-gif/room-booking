@@ -1,25 +1,15 @@
-import { provideHttpClient } from '@angular/common/http';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { TestBed } from '@angular/core/testing';
 import { SigninGoogleBtn } from './signin-google-btn';
 
-describe('SigninGoogleBtn', () => {
-	let component: SigninGoogleBtn;
-	let fixture: ComponentFixture<SigninGoogleBtn>;
+describe('SigninGoogleBtn (runs the action the page gives it)', () => {
+	it('calls the action on click and needs no service', () => {
+		const action = vi.fn();
+		const fixture = TestBed.createComponent(SigninGoogleBtn);
+		fixture.componentRef.setInput('action', action);
+		fixture.detectChanges();
 
-	beforeEach(async () => {
-		await TestBed.configureTestingModule({
-			imports: [SigninGoogleBtn],
-			// LoginService reads the route's query params and AuthService needs HttpClient.
-			providers: [provideRouter([]), provideHttpClient()],
-		}).compileComponents();
+		fixture.nativeElement.querySelector('#google-signin-btn').click();
 
-		fixture = TestBed.createComponent(SigninGoogleBtn);
-		component = fixture.componentInstance;
-		await fixture.whenStable();
-	});
-
-	it('should create', () => {
-		expect(component).toBeTruthy();
+		expect(action).toHaveBeenCalledTimes(1);
 	});
 });

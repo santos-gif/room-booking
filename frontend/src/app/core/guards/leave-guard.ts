@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanDeactivateFn } from '@angular/router';
-import { NavigationLock } from '../services/navigation-lock';
+import { NavigationLock } from '../../shared/stores/navigation-lock';
 import { hasCookie } from '../utils/cookies';
 
 /**

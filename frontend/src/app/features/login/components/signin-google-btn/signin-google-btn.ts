@@ -1,17 +1,15 @@
-import { Component, inject } from '@angular/core';
-import { LoginService } from '../../service/login.service';
+import { Component, input } from '@angular/core';
 
+/** The Google button. It calls whatever the page hands it and never touches a service. */
 @Component({
-	imports: [],
-	providers: [LoginService],
 	selector: 'app-signin-google-btn',
 	styleUrl: './signin-google-btn.css',
 	templateUrl: './signin-google-btn.html',
 })
 export class SigninGoogleBtn {
-	private readonly loginService = inject(LoginService);
+	readonly action = input.required<() => void>();
 
 	signIn(): void {
-		this.loginService.login();
+		this.action()();
 	}
 }

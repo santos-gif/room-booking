@@ -1,11 +1,11 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Major } from '../../../core/types/auth';
 import { ApiFailure, serverDetail } from '../../../core/utils/api-failure';
 import { AppHeader } from '../../../shared/components/app-header/app-header';
 import { ProfileForm } from '../components/profile-form/profile-form';
-import { OnboardingService } from '../service/onboarding.service';
+import { OnboardingService } from '../services/onboarding.service';
 
 /** The server refuses a NIM with more than 13 digits (the same cap as the backend payload). */
 const MAX_NIM = 9_999_999_999_999;
@@ -24,7 +24,14 @@ export class OnboardingPage {
 	private readonly router = inject(Router);
 	readonly nim = signal<number | null>(null);
 	readonly major = signal<Major | ''>('');
-	readonly errorMessage = signal('');
+	private readonly submitError = signal('');
+	readonly errorMessage = computed(
+		() =>
+			this.submitError() ||
+			(this.profile.error()
+				? 'Unable to load your profile. Reload the page to try again.'
+				: ''),
+	);
 	readonly submitting = signal(false);
 	// The same form edits the profile later (route data mode = 'edit'), e.g. when the major changes.
 	readonly editing = inject(ActivatedRoute).snapshot.data['mode'] === 'edit';
@@ -42,27 +49,21 @@ export class OnboardingPage {
 		);
 	});
 
-	constructor() {
-		if (this.editing) {
-			this.onboarding
-				.loadProfile()
-				.pipe(takeUntilDestroyed())
-				.subscribe({
-					next: (user) => {
-						this.nim.set(user.nim);
-						this.major.set(user.major ?? '');
-						this.saved.set({
-							nim: user.nim,
-							major: user.major ?? '',
-						});
-					},
-					error: () =>
-						this.errorMessage.set(
-							'Unable to load your profile. Reload the page to try again.',
-						),
-				});
+	// Only the Profile page (edit mode) loads the profile; onboarding starts with an empty form.
+	private readonly profile = rxResource({
+		params: () => this.editing || undefined,
+		stream: () => this.onboarding.loadProfile(),
+	});
+	protected readonly fillForm = effect(() => {
+		const user = this.profile.value();
+		if (user) {
+			untracked(() => {
+				this.nim.set(user.nim);
+				this.major.set(user.major ?? '');
+				this.saved.set({ nim: user.nim, major: user.major ?? '' });
+			});
 		}
-	}
+	});
 
 	private details(): { nim: number; major: Major } | null {
 		const nim = this.nim();
@@ -79,17 +80,17 @@ export class OnboardingPage {
 	submit(): void {
 		const details = this.details();
 		if (!details) {
-			this.errorMessage.set('Enter a valid NIM/NIDN and select your major.');
+			this.submitError.set('Enter a valid NIM/NIDN and select your major.');
 			return;
 		}
 		this.submitting.set(true);
-		this.errorMessage.set('');
+		this.submitError.set('');
 		this.onboarding.saveOnboarding(details.nim, details.major).subscribe({
 			next: () => void this.router.navigate(['/my-bookings']),
 			error: (error: ApiFailure) => {
 				// 409: that NIM belongs to another student, and the server's own sentence says so.
 				const reason = error.status === 409 ? serverDetail(error) : null;
-				this.errorMessage.set(
+				this.submitError.set(
 					reason ?? 'Unable to save your details. Please try again.',
 				);
 				this.submitting.set(false);

@@ -3,7 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { AuthService } from '../../../core/services/auth-service';
-import { BookingFormService } from '../service/booking-form.service';
+import { BookingFormService } from '../services/booking-form.service';
 import { BookingAppointment } from '../types/booking-form';
 import { BookingFormPage } from './booking-form-page';
 

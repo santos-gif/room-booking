@@ -1,3 +1,5 @@
+import { WritableSignal } from '@angular/core';
+
 export interface Closure {
 	id: string;
 	room_number: 1 | 2;
@@ -28,6 +30,25 @@ export interface OverridePayload {
 	room_number: 1 | 2;
 	start_time: string;
 	reason: string;
+}
+
+/** What the closures panel asks the page to preview: the room and the dates. */
+export interface ClosureQuery {
+	room: 1 | 2;
+	start: string;
+	end: string;
+}
+
+/** What the override panel asks the page to check: the room and one hour (ISO, Jakarta time). */
+export interface SlotQuery {
+	room: 1 | 2;
+	startTime: string;
+}
+
+/** One panel's requests in flight (a count, so one answer never frees another's buttons) and its error. */
+export interface Lane {
+	pending: WritableSignal<number>;
+	error: WritableSignal<string>;
 }
 
 export interface StaffResult {

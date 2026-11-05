@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Appointment } from '../types/appointment';
+import { Appointment } from '../../core/types/appointment';
 
 /** A cached list younger than this is shown as is; it only costs a server call (and a Google check) after. */
 const FRESH_MS = 60_000;

@@ -5,7 +5,7 @@
     @if (loginService.errorMessage()) {
       <p class="alert" role="alert">{{ loginService.errorMessage() }}</p>
     }
-    <app-signin-google-btn></app-signin-google-btn>
+    <app-signin-google-btn [action]="signIn" />
     <p class="hint">
       Use your @student.pradita.ac.id or @pradita.ac.id account. Google blocks other accounts before
       they reach this app.

@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { BookingsStore } from '../../../core/services/bookings-store';
+import { BookingsStore } from '../../../shared/stores/bookings-store';
 import {
 	Closure,
 	ClosurePayload,
