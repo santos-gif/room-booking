@@ -8,9 +8,12 @@ import { Closure, ClosurePayload, ClosureQuery, StaffBooking } from '../../types
 	imports: [DatePipe, FormsModule],
 	selector: 'app-closures-panel',
 	templateUrl: './closures-panel.html',
+	styleUrl: './closures-panel.css',
 })
 export class ClosuresPanel {
 	readonly closures = input<Closure[]>([]);
+	/** True until the first list arrives (a reload after a change keeps showing the old list). */
+	readonly loading = input(false);
 	/** Null until previewed: the close button needs a preview of exactly these dates. */
 	readonly affected = input<StaffBooking[] | null>(null);
 	readonly busy = input(false);
@@ -32,6 +35,14 @@ export class ClosuresPanel {
 			this.end() >= this.start() &&
 			!!this.reason().trim(),
 	);
+	/** A closure of this room that already covers a chosen day (ISO dates compare correctly as text). */
+	readonly clash = computed(() => {
+		const [room, start, end] = [this.room(), this.start(), this.end()];
+		const found = this.closures().find(
+			(c) => c.room_number === room && c.start_date <= end && c.end_date >= start,
+		);
+		return start && end && end >= start ? (found ?? null) : null;
+	});
 
 	edit<T>(target: WritableSignal<T>, value: T): void {
 		target.set(value);

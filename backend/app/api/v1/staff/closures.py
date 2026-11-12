@@ -1,12 +1,13 @@
 """Closing a room for a range of dates: preview who is affected, close it, list and remove closures."""
 from datetime import date, datetime, time, timedelta
 
+from fastapi import HTTPException
 from pydantic import TypeAdapter
 from supabase import Client
 
 from app.api.v1.appointment.exceptions import AppointmentValidationException
 from app.api.v1.appointment.types import JAKARTA_TZ
-from app.api.v1.staff.access import staff_db_errors
+from app.api.v1.staff.access import CLOSURE_OVERLAP, staff_db_errors
 from app.api.v1.staff.events import remove_events
 from app.api.v1.staff.types import ClosurePayload, ClosureResponse, StaffActionResult, StaffBooking
 from app.queries import staff as staff_queries
@@ -27,6 +28,12 @@ def preview(supabase: Client, room_number: int, start: date, end: date) -> list[
 
 
 def create(supabase: Client, payload: ClosurePayload) -> StaffActionResult:
+	with staff_db_errors():
+		clash = staff_queries.overlapping_closure(
+			supabase, payload.room_number, payload.start_date, payload.end_date
+		)
+	if clash:
+		raise HTTPException(status_code=409, detail=CLOSURE_OVERLAP)
 	with staff_db_errors():
 		cancelled = staff_queries.create_closure(
 			supabase, payload.room_number, payload.start_date, payload.end_date, payload.reason

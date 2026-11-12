@@ -23,6 +23,21 @@ def closure_on(supabase: Client, room_number: int, day: date) -> dict[str, objec
 	return rows[0] if rows else None
 
 
+def overlapping_closure(supabase: Client, room_number: int, start: date, end: date) -> dict[str, object] | None:
+	"""A closure of this room that shares at least one day with start..end, or None."""
+	result = (
+		supabase.table("room_closures")
+		.select("id,start_date,end_date")
+		.eq("room_number", room_number)
+		.lte("start_date", end.isoformat())
+		.gte("end_date", start.isoformat())
+		.limit(1)
+		.execute()
+	)
+	rows = _rows(result.data)
+	return rows[0] if rows else None
+
+
 def list_closures(supabase: Client) -> list[dict[str, object]]:
 	result = (
 		supabase.table("room_closures")

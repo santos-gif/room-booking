@@ -9,7 +9,7 @@ venv/
 .env
 .env.*
 !*.example
-env.local
+.env.local
 
 # Python test and coverage output
 .pytest_cache/

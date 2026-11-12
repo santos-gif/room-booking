@@ -60,4 +60,27 @@ describe('ClosuresPanel (asks the page; never calls a service)', () => {
 		panel.edit(panel.reason, '  ');
 		expect(panel.ready()).toBe(false);
 	});
+
+	it('points at the closure that already covers a chosen day, only for that room', () => {
+		const fixture = TestBed.createComponent(ClosuresPanel);
+		const panel = fixture.componentInstance;
+		const existing = {
+			id: 'c1',
+			room_number: 1 as const,
+			start_date: '2030-01-02',
+			end_date: '2030-01-05',
+			reason: 'AC',
+		};
+		fixture.componentRef.setInput('closures', [existing]);
+		panel.edit(panel.start, '2030-01-05');
+		panel.edit(panel.end, '2030-01-08');
+
+		expect(panel.clash()).toEqual(existing);
+
+		panel.edit(panel.start, '2030-01-06');
+		expect(panel.clash()).toBeNull();
+		panel.edit(panel.start, '2030-01-01');
+		panel.edit(panel.room, 2);
+		expect(panel.clash()).toBeNull();
+	});
 });

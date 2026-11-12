@@ -51,6 +51,12 @@
     />
   </div>
 
+  @if (clash(); as other) {
+    <p class="alert" role="alert">
+      Room {{ other.room_number }} is already closed from {{ other.start_date }} to
+      {{ other.end_date }}. Pick other dates, or reopen that closure first.
+    </p>
+  }
   @if (error()) {
     <p class="alert" role="alert">{{ error() }}</p>
   }
@@ -77,23 +83,29 @@
     <button
       type="button"
       class="btn btn-primary"
-      [disabled]="busy() || !ready()"
+      [disabled]="busy() || !ready() || !!clash()"
       (click)="preview()"
     >
       Preview who is affected
     </button>
   }
 
-  @if (closures().length) {
-    <h3>Current and past closures</h3>
-    <ul class="list">
+  <h3>Current and past closures</h3>
+  @if (loading()) {
+    <p class="lead" role="status">Loading closures…</p>
+  } @else if (closures().length) {
+    <ul class="closures">
       @for (closure of closures(); track closure.id) {
         <li>
-          Room {{ closure.room_number }}: {{ closure.start_date }} to {{ closure.end_date }},
-          {{ closure.reason }}
+          <span>
+            Room {{ closure.room_number }}: {{ closure.start_date }} to {{ closure.end_date }},
+            {{ closure.reason }}
+          </span>
           <button type="button" class="btn" (click)="remove(closure)">Reopen</button>
         </li>
       }
     </ul>
+  } @else {
+    <p class="lead">No closures yet.</p>
   }
 </section>

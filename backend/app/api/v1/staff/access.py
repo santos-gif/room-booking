@@ -9,6 +9,9 @@ from app.api.v1.auth.helper import get_current_user
 from app.api.v1.auth.types import AuthenticatedUser
 
 
+CLOSURE_OVERLAP = "These dates overlap an existing closure for that room."
+
+
 def require_staff(current_user: AuthenticatedUser = Depends(get_current_user)) -> AuthenticatedUser:
 	# Every staff function checks the role again inside the database; this keeps the answer a clean 403.
 	if current_user.role != "staff":
@@ -38,5 +41,8 @@ def staff_db_errors() -> Iterator[None]:
 				else "Choose a weekday slot starting between 08:00 and 16:00 WIB.",
 			) from error
 		if code == "23P01":
-			raise HTTPException(status_code=409, detail="That slot was just taken. Try again.") from error
+			# The same exclusion code also guards bookings: the constraint name tells them apart.
+			taken = "That slot was just taken. Try again."
+			detail = CLOSURE_OVERLAP if "room_closures" in (error.message or "") else taken
+			raise HTTPException(status_code=409, detail=detail) from error
 		raise

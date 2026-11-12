@@ -22,15 +22,14 @@ import {
 
 const FAILED = 'That did not work. Nothing was changed.';
 const LIST_FAILED = 'The closures list could not be loaded. Reload before closing a room.';
-
 const newLane = (): Lane => ({ pending: signal(0), error: signal('') });
 
 /** The answer of a staff action in words: how many were cancelled and what is left for tonight. */
 function outcome(lead: string, result: StaffResult): string {
-	const left = result.events_left
-		? ` ${result.events_left} calendar event(s) will be removed tonight.`
-		: '';
-	return `${lead} ${result.cancelled} booking(s) cancelled and the students told.${left}`;
+	const left =
+		result.events_left &&
+		` ${result.events_left} calendar event(s) will be removed tonight.`;
+	return `${lead} ${result.cancelled} booking(s) cancelled and the students told.${left || ''}`;
 }
 
 /** For staff only (the route guard hides it, the server refuses everyone else). Holds the panels' state. */
@@ -51,6 +50,7 @@ export class StaffPage {
 	private previewCall: Subscription | null = null;
 	private checkCall: Subscription | null = null;
 	readonly closures = computed<Closure[]>(() => this.closureList.value() ?? []);
+	readonly closuresLoading = computed(() => this.closureList.status() === 'loading');
 	/** Null until previewed: the close button needs a preview of exactly these dates. */
 	readonly affected = signal<StaffBooking[] | null>(null);
 	/** Null until checked: the take button needs a check of exactly this slot. */
