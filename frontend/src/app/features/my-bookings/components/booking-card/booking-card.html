@@ -1,9 +1,9 @@
 <article class="booking-card">
   <div class="when">
-    <span class="date">{{ appointment().start_time | date: 'EEE d MMM' : 'Asia/Jakarta' }}</span>
+    <span class="date">{{ appointment().start_time | date: 'EEE d MMM' : '+0700' }}</span>
     <span class="time">
-      {{ appointment().start_time | date: 'HH:mm' : 'Asia/Jakarta' }}–{{
-        appointment().end_time | date: 'HH:mm' : 'Asia/Jakarta'
+      {{ appointment().start_time | date: 'HH:mm' : '+0700' }}–{{
+        appointment().end_time | date: 'HH:mm' : '+0700'
       }}
       <small>WIB</small>
     </span>

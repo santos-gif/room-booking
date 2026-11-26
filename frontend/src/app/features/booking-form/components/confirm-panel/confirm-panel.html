@@ -7,13 +7,13 @@
     </div>
     <div>
       <dt>Date</dt>
-      <dd>{{ slot().start_time | date: 'EEEE, d MMMM y' : 'Asia/Jakarta' }}</dd>
+      <dd>{{ slot().start_time | date: 'EEEE, d MMMM y' : '+0700' }}</dd>
     </div>
     <div>
       <dt>Time</dt>
       <dd>
-        {{ slot().start_time | date: 'hh:mm a' : 'Asia/Jakarta' }} —
-        {{ slot().end_time | date: 'hh:mm a' : 'Asia/Jakarta' }} WIB
+        {{ slot().start_time | date: 'hh:mm a' : '+0700' }} —
+        {{ slot().end_time | date: 'hh:mm a' : '+0700' }} WIB
       </dd>
     </div>
   </dl>

@@ -18,7 +18,7 @@
           [disabled]="!slot.available || disabled() || isCurrent(slot)"
           (click)="pick.emit(slot)"
         >
-          <span class="t">{{ slot.start_time | date: 'hh:mm a' : 'Asia/Jakarta' }}</span>
+          <span class="t">{{ slot.start_time | date: 'hh:mm a' : '+0700' }}</span>
           <span class="s">
             {{ isCurrent(slot) ? 'Your booking' : slot.available ? 'Free' : 'Unavailable' }}
           </span>
