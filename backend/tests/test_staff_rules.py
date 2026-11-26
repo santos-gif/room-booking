@@ -84,18 +84,34 @@ class StaffRulesTests(unittest.TestCase):
 		with self.assertRaises(AppointmentValidationException):
 			validate_slot(past, 1)
 
-	def _availability(self, user, closure=None, used=3):
+	def _availability(self, user, closure=None, used=3, day=None):
 		supabase = Mock()
 		supabase.rpc.return_value.execute.return_value = SimpleNamespace(data=[{"booked_starts": [], "bookings_used": used}])
-		with patch("app.api.v1.appointment.slots.staff_queries.closure_on", return_value=closure):
-			return get_availability(supabase, next_weekday_start(9).date(), 1, user)
+		with (
+			patch("app.api.v1.appointment.slots.staff_queries.closure_on", return_value=closure),
+			patch("app.api.v1.appointment.slots.appointment_queries.list_active", return_value=[]),
+		):
+			return get_availability(supabase, day or next_weekday_start(9).date(), 1, user)
 
 	def test_staff_ignore_the_booking_limit_and_a_closure_shuts_the_day(self) -> None:
 		self.assertTrue(all(slot.available for slot in self._availability(STAFF).slots))
-		self.assertEqual(self._availability(STAFF).bookings_remaining, 3)  # the page shows no limit
+		self.assertIsNone(self._availability(STAFF).bookings_remaining)  # no limit, so no count to show
+		self.assertEqual(self._availability(student_user(), used=1).bookings_remaining, 2)
 		closed = self._availability(STAFF, CLOSURE)
 		self.assertFalse(any(slot.available for slot in closed.slots))
 		self.assertEqual(closed.closed_reason, "AC repair")
+
+	def test_the_booking_page_offers_staff_no_hour_that_has_ended(self) -> None:
+		past_day = (next_weekday_start(9) - timedelta(weeks=4)).date()
+		self.assertFalse(any(slot.available for slot in self._availability(STAFF, day=past_day).slots))
+
+	def test_staff_cannot_book_an_ended_hour_from_the_booking_page(self) -> None:
+		past = next_weekday_start(9) - timedelta(weeks=4)
+		supabase = Mock()
+		with self.assertRaises(AppointmentValidationException) as caught:
+			create_appointment(AppointmentPayload(room_number=1, start_time=past), supabase, STAFF)
+		self.assertIn("already over", caught.exception.detail)
+		supabase.table.assert_not_called()
 
 	def test_booking_inside_a_closure_is_refused_before_any_insert(self) -> None:
 		supabase = Mock()

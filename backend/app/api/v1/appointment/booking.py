@@ -1,6 +1,6 @@
 """Listing, creating and cancelling bookings (each one mirrored as a Google Calendar event)."""
 import logging
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from postgrest.exceptions import APIError
@@ -18,8 +18,8 @@ from app.api.v1.appointment.exceptions import (
 )
 from app.api.v1.appointment.booking_event import create_event_or_roll_back
 from app.api.v1.appointment.calendar_event import booker_name, build_calendar_event
-from app.api.v1.appointment.slots import to_responses, validate_slot
-from app.api.v1.appointment.types import AppointmentPayload, AppointmentResponse
+from app.api.v1.appointment.slots import SLOT_LENGTH, to_responses, validate_slot
+from app.api.v1.appointment.types import AppointmentPayload, AppointmentResponse, JAKARTA_TZ
 from app.api.v1.auth.types import AuthenticatedUser
 from app.google_api.calendar_api import room_calendar_id
 from app.queries import appointments as appointment_queries
@@ -43,6 +43,8 @@ def create_appointment(
 ) -> AppointmentResponse:
 	"""Reserve the slot (a pending row), mirror it in Google Calendar, then confirm it."""
 	start_time = validate_slot(payload.start_time, payload.room_number, staff=current_user.role == "staff")
+	if start_time + SLOT_LENGTH <= datetime.now(JAKARTA_TZ):
+		raise AppointmentValidationException("That hour is already over. Staff record past hours on the Staff page.")
 	if current_user.nim is None:
 		raise ProfileIncompleteException()
 	closure = staff_queries.closure_on(supabase, payload.room_number, start_time.date())

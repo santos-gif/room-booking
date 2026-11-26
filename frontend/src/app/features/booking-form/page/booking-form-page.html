@@ -11,7 +11,7 @@
         }}
       </p>
     </div>
-    @if (!updating) {
+    @if (!updating && bookingsRemaining() !== null) {
       <p class="chip chip-orange quota" aria-live="polite">
         {{ bookingsRemaining() }} of 3 bookings left
       </p>
@@ -67,9 +67,6 @@
   }
 
   @if (resultMessage()) {
-    <app-result-dialog
-      [message]="resultMessage()"
-      (closed)="closeResult()"
-    />
+    <app-result-dialog [message]="resultMessage()" (closed)="closeResult()" />
   }
 </main>

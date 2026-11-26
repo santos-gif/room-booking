@@ -39,7 +39,7 @@ class AvailableSlot(BaseModel):
 
 class AvailabilityResponse(BaseModel):
 	bookings_used: int
-	bookings_remaining: int
+	bookings_remaining: int | None  # None for staff, who have no limit
 	slots: list[AvailableSlot]
 	closed_reason: str | None = None
 

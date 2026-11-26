@@ -122,8 +122,7 @@ def get_availability(
 		raise AppointmentStorageException()
 	closure = staff_queries.closure_on(supabase, room_number, booking_date)
 	staff = current_user.role == "staff"
-	if staff:
-		bookings_used = 0  # no booking limit for staff, so the page must not show one
+	bookings_used = 0 if staff else bookings_used  # no booking limit for staff
 	own_busy = set() if staff else _own_busy(supabase, current_user.id, exclude_appointment_id)
 	now = datetime.now(JAKARTA_TZ)
 	slots = [
@@ -135,6 +134,7 @@ def get_availability(
 				and booking_date.weekday() < 5
 				and slot not in booked_starts
 				and slot not in own_busy
+				and now < slot + SLOT_LENGTH  # an ended hour would never show in My bookings: offer it to nobody
 				and (staff or (now + LEAD < slot <= now + MAX_ADVANCE and bookings_used < MAX_ACTIVE_BOOKINGS))
 			),
 		)
@@ -143,7 +143,7 @@ def get_availability(
 	]
 	return AvailabilityResponse(
 		bookings_used=bookings_used,
-		bookings_remaining=max(0, MAX_ACTIVE_BOOKINGS - bookings_used),
+		bookings_remaining=None if staff else max(0, MAX_ACTIVE_BOOKINGS - bookings_used),
 		slots=slots,
 		closed_reason=str(closure["reason"]) if closure else None,
 	)

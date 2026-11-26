@@ -13,8 +13,6 @@ interface AvailabilityQuery {
 	excludeId?: string;
 }
 
-/** What a student may hold at once (the server enforces it; this is only the number shown before the first answer). */
-const BOOKING_LIMIT = 3;
 /** How often a visible tab asks again, so a slot someone else just took disappears. */
 const REFRESH_MS = 60_000;
 
@@ -26,7 +24,8 @@ const REFRESH_MS = 60_000;
  */
 export function loadAvailability(api: BookingFormService, query: AvailabilityQuery) {
 	const slots = signal<AvailableSlot[]>([]);
-	const bookingsRemaining = signal(BOOKING_LIMIT);
+	/** Null before the first answer and for staff: no count is shown then. */
+	const bookingsRemaining = signal<number | null>(null);
 	/** Set when staff closed the room on this day: the slots are shut and this says why. */
 	const closedReason = signal<string | null>(null);
 	const loading = signal(true);
