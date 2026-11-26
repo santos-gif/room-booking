@@ -72,8 +72,8 @@ async def check_csrf_cookie(
 	request: Request,
 	call_next: RequestResponseEndpoint,
 ) -> Response:
-	# QUICK FIX: Bypass authentication/OAuth callback endpoints entirely
-	if request.url.path == "/api/v1/google-auth/oauth2callback":
+	# Google's redirect back to us is a GET with no CSRF header; any other method on that path is still checked.
+	if request.method == "GET" and request.url.path == "/api/v1/google-auth/oauth2callback":
 		return await call_next(request)
 
 	if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:

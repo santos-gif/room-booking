@@ -27,7 +27,9 @@ Frontend — `frontend/.env.local`:
 NG_APP_API_URL=http://localhost:3000/api/v1
 ```
 
-Database — jalankan semua file di `supabase/migrations/` berurutan (nama file = urutan) pada project Supabase.
+Database — jalankan `supabase/main.sql` lebih dulu (tabel dasar, Auth, RLS, kebijakan bawaan), lalu file di
+`supabase/migrations/` berurutan (nama file = urutan) pada project Supabase. Urutan ini lolos pada Postgres kosong
+(lihat README bagian 2, issue #19 dan #20).
 
 ## 3. Instalasi
 
@@ -57,11 +59,11 @@ Login pertama meminta NIM dan jurusan (onboarding), setelah itu masuk ke "My boo
 ## 5. Menjalankan unit test
 
 ```bash
-# backend (107 test)
+# backend (134 test)
 cd backend
 .venv\Scripts\python.exe -m pytest -q
 
-# frontend (109 test, 29 file)
+# frontend (139 test, 36 file)
 cd frontend
 npx ng test --no-watch
 ```

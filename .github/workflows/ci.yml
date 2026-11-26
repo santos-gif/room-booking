@@ -1,0 +1,78 @@
+name: CI
+
+# Test, build, then deploy. A failing test or build stops the run before the deploy job, so a red run never goes live.
+# v1.0_dev deploys a preview; v1.1 (the release) deploys production; main and v1.0 are only tested.
+# Vercel's own Git deploys are switched off for all four branches in vercel.json, so only this workflow deploys.
+on:
+  push:
+    branches: [main, v1.0, v1.0_dev, v1.1]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - run: pip install -e . pytest
+      - run: python -m pytest -q
+
+  frontend:
+    name: Frontend tests and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      NG_APP_API_URL: /api/v1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Same versions as local: the Angular CLI needs ^22.22.3 or ^24.15.0, and package.json pins npm 12.0.1.
+          node-version: 24.15.0
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm install --global npm@12.0.1
+      - run: npm ci
+      - run: npx ng test --no-watch
+      - run: npx ng build
+
+  deploy:
+    name: Deploy to Vercel
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/v1.0_dev' || github.ref == 'refs/heads/v1.1')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-${{ github.ref }}
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --global vercel
+      - name: Deploy
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          TARGET: ${{ github.ref == 'refs/heads/v1.1' && '--prod' || '' }}
+        run: |
+          url=$(vercel deploy $TARGET --yes --token "$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Show the live address
+        run: echo "Deployed ${{ github.ref_name }} to ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"

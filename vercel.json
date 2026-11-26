@@ -1,4 +1,12 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "main": false,
+      "v1.0": false,
+      "v1.0_dev": false,
+      "v1.1": false
+    }
+  },
   "services": {
     "my_frontend": {
       "root": "frontend/"

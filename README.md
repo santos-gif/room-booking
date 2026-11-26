@@ -46,8 +46,11 @@ Lokal: `GOOGLE_REDIRECT_URI=http://localhost:3000/api/v1/google-auth/oauth2callb
 
 Frontend: `frontend/.env.local` berisi `NG_APP_API_URL=http://localhost:3000/api/v1`.
 
-Database: jalankan file di `supabase/migrations/` yang namanya diawali tanggal (`2026...`) secara berurutan di SQL editor
-Supabase. Abaikan `main.sql`: itu arsip bergaya Markdown, bukan SQL yang bisa dijalankan. Nama file adalah urutannya.
+Database: di SQL editor Supabase jalankan lebih dulu `supabase/main.sql` (hubungan ke Supabase Auth, RLS, kebijakan
+bawaan, fungsi aturan booking), lalu semua file di `supabase/migrations/` berurutan menurut nama (diawali tanggal).
+`main.sql` kini juga membuat tabel dasar `users`, `appointments` dan `google_refresh_tokens`. Urutan ini sudah diuji pada
+Postgres kosong (Docker, dengan stub Supabase): `main.sql` lalu 16 file bertanggal lolos semua. Hasilnya berbeda dari
+produksi pada beberapa policy dan hak kolom (lihat issue #19 dan #20).
 Migrasi `202611050001_closure_no_overlap.sql` berhenti dengan pesan jelas jika masih ada dua penutupan yang tumpang tindih.
 
 Staf: tidak ada layar untuk mengangkat staf. Jalankan di SQL editor:
@@ -58,7 +61,7 @@ Staf: tidak ada layar untuk mengangkat staf. Jalankan di SQL editor:
 ```bash
 vercel dev --listen 3000                 # dari root repo; buka http://localhost:3000
 
-cd backend && .venv\Scripts\python.exe -m pytest -q       # 133 test
+cd backend && .venv\Scripts\python.exe -m pytest -q       # 134 test
 cd frontend && npx ng test --no-watch                     # 139 test
 cd frontend && npx ng build                               # build produksi
 node .claude/skills/verify-all/check-file-sizes.js        # aturan 150 baris/kolom per file
@@ -71,7 +74,10 @@ node .claude/skills/verify-all/check-file-sizes.js        # aturan 150 baris/kol
 2. Isi environment variable yang sama dengan `backend/.env.example` di Vercel (production, preview, development);
    `GOOGLE_REDIRECT_URI` dan `FRONTEND_URL` memakai domain produksi, `COOKIE_SECURE=true`. `CRON_SECRET` wajib karena
    cron memanggil rute rekonsiliasi dengan header `Authorization: Bearer`.
-3. Push ke `main` (atau `vercel --prod`) untuk men-deploy. Terapkan migrasi baru ke Supabase lebih dulu.
+3. Deploy hanya lewat GitHub Actions (`.github/workflows/ci.yml`): test dan build harus lulus dulu. Push ke `v1.0_dev`
+   membuat preview untuk diuji, push ke `v1.1` men-deploy produksi; `main` dan `v1.0` hanya diuji. Deploy otomatis Vercel
+   dimatikan untuk keempat cabang di `vercel.json`. Secret GitHub yang dibutuhkan: `VERCEL_TOKEN`, `VERCEL_ORG_ID`,
+   `VERCEL_PROJECT_ID`. Terapkan migrasi baru ke Supabase lebih dulu.
 4. Cek: buka situs, login, buat booking, lihat event di kalender, lalu lihat log di Vercel (Project > Logs).
 
 ## 5. Dokumen lain

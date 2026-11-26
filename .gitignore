@@ -55,6 +55,7 @@ add_vercel_env.ps1
 .vibe-wise/
 frontend/e2e/
 playwright.config.ts
+.playwright-mcp
 
 
 skills-lock.json

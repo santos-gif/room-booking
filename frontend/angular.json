@@ -84,7 +84,7 @@
         },
         "test": {
           "builder": "@ngx-env/builder:unit-test",
-          "options": { "buildTarget": "frontend:build:test" }
+          "options": { "buildTarget": "frontend:build:test", "runnerConfig": "vitest.config.ts" }
         }
       }
     }

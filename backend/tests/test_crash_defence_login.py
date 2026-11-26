@@ -92,6 +92,11 @@ class AppHandlerTests(unittest.TestCase):
 		response = client.post("/api/v1/google-auth/other-callback")
 		self.assertEqual(response.status_code, 403)
 
+	def test_the_callback_bypass_is_for_get_only(self) -> None:
+		client = TestClient(app, raise_server_exceptions=False, cookies={"access_token": "a"})
+		response = client.post("/api/v1/google-auth/oauth2callback")
+		self.assertEqual(response.status_code, 403)
+
 	def test_non_ascii_csrf_header_is_a_403_not_a_500(self) -> None:
 		client = TestClient(app, raise_server_exceptions=False, cookies={"access_token": "a", "csrf_token": "abc"})
 		response = client.post("/api/v1/appointments/", headers={"x-csrf-token": "café".encode("latin-1")})

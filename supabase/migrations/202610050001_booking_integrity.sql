@@ -29,7 +29,7 @@ ALTER TABLE public.users
             )
         );
 
-CREATE UNIQUE INDEX users_email_case_insensitive_uidx
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_case_insensitive_uidx
     ON public.users (lower(email));
 
 -- ============================================================
@@ -42,13 +42,22 @@ ALTER TABLE public.appointments
     ALTER COLUMN start_time SET NOT NULL,
     ALTER COLUMN end_time SET NOT NULL;
 
+-- main.sql already creates these on a fresh database: drop first, so this file can also run after it.
 ALTER TABLE public.appointments
-    ADD COLUMN google_calendar_id text,
-    ADD COLUMN google_event_id text,
-    ADD COLUMN replaces_appointment_id uuid
+    DROP CONSTRAINT IF EXISTS appointments_room_allowed,
+    DROP CONSTRAINT IF EXISTS appointments_one_hour,
+    DROP CONSTRAINT IF EXISTS appointments_status_allowed,
+    DROP CONSTRAINT IF EXISTS appointments_sync_status_allowed,
+    DROP CONSTRAINT IF EXISTS appointments_weekday_hours,
+    DROP CONSTRAINT IF EXISTS appointments_room_time_no_overlap;
+
+ALTER TABLE public.appointments
+    ADD COLUMN IF NOT EXISTS google_calendar_id text,
+    ADD COLUMN IF NOT EXISTS google_event_id text,
+    ADD COLUMN IF NOT EXISTS replaces_appointment_id uuid
         REFERENCES public.appointments(id),
-    ADD COLUMN status text NOT NULL DEFAULT 'confirmed',
-    ADD COLUMN sync_status text NOT NULL DEFAULT 'legacy',
+    ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'confirmed',
+    ADD COLUMN IF NOT EXISTS sync_status text NOT NULL DEFAULT 'legacy',
     ADD CONSTRAINT appointments_room_allowed
         CHECK (room_number IN (1, 2)),
     ADD CONSTRAINT appointments_one_hour
@@ -111,19 +120,19 @@ ALTER TABLE public.appointments
 -- 3. Appointment indexes
 -- ============================================================
 
-CREATE UNIQUE INDEX appointments_google_event_uidx
+CREATE UNIQUE INDEX IF NOT EXISTS appointments_google_event_uidx
     ON public.appointments (google_calendar_id, google_event_id)
     WHERE google_calendar_id IS NOT NULL
       AND google_event_id IS NOT NULL;
 
-CREATE INDEX appointments_booker_day_idx
+CREATE INDEX IF NOT EXISTS appointments_booker_day_idx
     ON public.appointments (
         booker_id,
         ((start_time AT TIME ZONE 'Asia/Jakarta')::date)
     )
     WHERE status IN ('pending', 'confirmed');
 
-CREATE UNIQUE INDEX appointments_single_active_replacement_uidx
+CREATE UNIQUE INDEX IF NOT EXISTS appointments_single_active_replacement_uidx
     ON public.appointments (replaces_appointment_id)
     WHERE replaces_appointment_id IS NOT NULL
       AND status IN ('pending', 'confirmed');

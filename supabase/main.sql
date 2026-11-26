@@ -1,7 +1,37 @@
-# `supabase_auth_booking_rules.sql`
+-- Baseline: links profiles to Supabase Auth, turns on RLS and creates the default policies and booking-rule functions.
+-- Run this FIRST in the Supabase SQL editor, then the dated files in supabase/migrations/ in name order.
+-- Section 0 creates the three base tables as they were first made by hand in the dashboard (GitHub issue #19).
 
-```sql
 BEGIN;
+
+-- ============================================================
+-- 0. Base tables (IF NOT EXISTS: a no-op on a database that already has them)
+-- Only the original shape. Later columns, checks, indexes and the role column are added by the sections below
+-- and by the dated files in supabase/migrations/.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.users (
+    id uuid PRIMARY KEY,
+    name text NOT NULL,
+    email text NOT NULL UNIQUE,
+    nim bigint UNIQUE,
+    major text
+);
+
+CREATE TABLE IF NOT EXISTS public.appointments (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    booker_id uuid REFERENCES public.users(id) ON DELETE CASCADE,
+    room_number integer NOT NULL,
+    start_time timestamptz NOT NULL,
+    end_time timestamptz NOT NULL,
+    CONSTRAINT check_time_order CHECK (start_time < end_time)
+);
+
+CREATE TABLE IF NOT EXISTS public.google_refresh_tokens (
+    id uuid PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+    refresh_token text NOT NULL,
+    is_valid boolean NOT NULL DEFAULT true
+);
 
 -- ============================================================
 -- 1. Extensions
@@ -349,4 +379,3 @@ USING (booker_id = (SELECT auth.uid()));
 -- FastAPI should access them using its server-side credentials.
 
 COMMIT;
-```
